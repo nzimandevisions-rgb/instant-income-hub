@@ -100,7 +100,7 @@ export function useWallet() {
           id: makeId(),
           label: opts.label,
           points: -opts.points,
-          source: "withdrawal",
+          source: "withdrawal" as const,
           at: new Date().toISOString(),
         },
         ...state.ledger,
