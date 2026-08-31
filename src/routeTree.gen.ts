@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as OffersRouteImport } from './routes/offers'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as WatchRouteImport } from './routes/watch'
@@ -17,6 +18,11 @@ import { Route as WatchRouteImport } from './routes/watch'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OffersRoute = OffersRouteImport.update({
@@ -37,12 +43,14 @@ const WatchRoute = WatchRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/offers': typeof OffersRoute
   '/wallet': typeof WalletRoute
   '/watch': typeof WatchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/offers': typeof OffersRoute
   '/wallet': typeof WalletRoute
   '/watch': typeof WatchRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/offers': typeof OffersRoute
   '/wallet': typeof WalletRoute
   '/watch': typeof WatchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/offers' | '/wallet' | '/watch'
+  fullPaths: '/' | '/auth' | '/offers' | '/wallet' | '/watch'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/offers' | '/wallet' | '/watch'
-  id: '__root__' | '/' | '/offers' | '/wallet' | '/watch'
+  to: '/' | '/auth' | '/offers' | '/wallet' | '/watch'
+  id: '__root__' | '/' | '/auth' | '/offers' | '/wallet' | '/watch'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   OffersRoute: typeof OffersRoute
   WalletRoute: typeof WalletRoute
   WatchRoute: typeof WatchRoute
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offers': {
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   OffersRoute: OffersRoute,
   WalletRoute: WalletRoute,
   WatchRoute: WatchRoute,

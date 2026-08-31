@@ -126,14 +126,30 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAuthRoute = pathname === "/auth";
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthRoute) {
+      setChecked(true);
+      return;
+    }
+    if (!hasToken()) {
+      router.navigate({ to: "/auth" });
+      return;
+    }
+    setChecked(true);
+  }, [isAuthRoute, pathname, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <div className="mx-auto min-h-screen max-w-md pb-28">
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        {(isAuthRoute || checked) && <Outlet />}
       </div>
-      <BottomNav />
+      {!isAuthRoute && checked && <BottomNav />}
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
