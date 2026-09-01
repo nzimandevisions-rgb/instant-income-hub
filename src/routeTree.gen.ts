@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as OffersRouteImport } from './routes/offers'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as WatchRouteImport } from './routes/watch'
+import { Route as ApiPublicFeedKindRouteImport } from './routes/api/public/feed.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const WatchRoute = WatchRouteImport.update({
   path: '/watch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFeedKindRoute = ApiPublicFeedKindRouteImport.update({
+  id: '/api/public/feed/$kind',
+  path: '/api/public/feed/$kind',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/offers': typeof OffersRoute
   '/wallet': typeof WalletRoute
   '/watch': typeof WatchRoute
+  '/api/public/feed/$kind': typeof ApiPublicFeedKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/offers': typeof OffersRoute
   '/wallet': typeof WalletRoute
   '/watch': typeof WatchRoute
+  '/api/public/feed/$kind': typeof ApiPublicFeedKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,23 @@ export interface FileRoutesById {
   '/offers': typeof OffersRoute
   '/wallet': typeof WalletRoute
   '/watch': typeof WatchRoute
+  '/api/public/feed/$kind': typeof ApiPublicFeedKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/offers' | '/wallet' | '/watch'
+  fullPaths:
+    '/' | '/auth' | '/offers' | '/wallet' | '/watch' | '/api/public/feed/$kind'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/offers' | '/wallet' | '/watch'
-  id: '__root__' | '/' | '/auth' | '/offers' | '/wallet' | '/watch'
+  to:
+    '/' | '/auth' | '/offers' | '/wallet' | '/watch' | '/api/public/feed/$kind'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/offers'
+    | '/wallet'
+    | '/watch'
+    | '/api/public/feed/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +95,7 @@ export interface RootRouteChildren {
   OffersRoute: typeof OffersRoute
   WalletRoute: typeof WalletRoute
   WatchRoute: typeof WatchRoute
+  ApiPublicFeedKindRoute: typeof ApiPublicFeedKindRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +135,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/feed/$kind': {
+      id: '/api/public/feed/$kind'
+      path: '/api/public/feed/$kind'
+      fullPath: '/api/public/feed/$kind'
+      preLoaderRoute: typeof ApiPublicFeedKindRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +151,7 @@ const rootRouteChildren: RootRouteChildren = {
   OffersRoute: OffersRoute,
   WalletRoute: WalletRoute,
   WatchRoute: WatchRoute,
+  ApiPublicFeedKindRoute: ApiPublicFeedKindRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
