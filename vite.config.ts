@@ -10,18 +10,16 @@ export default defineConfig({
     tsconfigPaths(),
     tailwindcss(),
     TanStackStartVite({
-      // This tells the plugin to not bundle server code into the client
       server: {
         preset: "cloudflare-pages",
       },
     }),
   ],
-  // Important: This separates client and server builds
   ssr: {
     noExternal: true,
   },
   build: {
-    // Build both client and server
+    // This tells Vite to build both client and server
     ssr: true,
     rollupOptions: {
       input: {
