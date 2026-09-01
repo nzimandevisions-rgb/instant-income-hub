@@ -78,7 +78,7 @@ function extractRows(payload: unknown): RawTask[] {
 export async function fetchFeed(kind: FeedKind, signal?: AbortSignal): Promise<LiveTask[]> {
   const res = await fetch(FEED_BASE + FEED_ENDPOINTS[kind], {
     headers: { Accept: "application/json" },
-    signal,
+    signal: signal ?? null,
   });
   if (!res.ok) throw new Error(`Feed request failed (${res.status})`);
   const payload = await res.json();
