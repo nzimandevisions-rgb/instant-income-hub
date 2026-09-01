@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Download, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { BalanceHeader } from "@/components/BalanceHeader";
-import { offers } from "@/lib/hustle-data";
-import { useWallet } from "@/lib/wallet-store";
+import { FeedEmptyState, FeedSkeleton } from "@/components/FeedEmptyState";
+import { launchTask, useFeed } from "@/lib/feed";
+import { useSession } from "@/lib/use-session";
 
 export const Route = createFileRoute("/offers")({
   head: () => ({
@@ -25,7 +26,8 @@ export const Route = createFileRoute("/offers")({
 });
 
 function OffersPage() {
-  const { completed, credit } = useWallet();
+  const { tasks, loading, isEmpty } = useFeed("offer");
+  const { userId } = useSession();
 
   return (
     <div>
@@ -39,47 +41,49 @@ function OffersPage() {
           Top offers
         </h2>
 
-        {offers.map((offer) => {
-          const done = completed.includes(offer.id);
-          return (
-            <article key={offer.id} className="glass-card rounded-2xl p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    {offer.network}
-                  </p>
-                  <h3 className="mt-1 flex items-center gap-2 text-base font-semibold">
-                    {offer.title}
-                    {offer.hot && <Flame className="size-4 text-gold" />}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{offer.task}</p>
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Download className="size-3.5" /> {offer.size}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-xl bg-gold px-3 py-1.5 text-sm font-bold text-gold-foreground shadow-gold">
-                  +{offer.points}
-                </span>
-              </div>
+        {loading && <FeedSkeleton />}
+        {isEmpty && <FeedEmptyState />}
 
-              <button
-                disabled={done}
-                onClick={() => {
-                  const ok = credit({
-                    label: offer.title,
-                    points: offer.points,
-                    source: "offer",
-                    taskId: offer.id,
-                  });
-                  if (ok) toast.success(`${offer.points} points credited`);
-                }}
-                className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:bg-secondary disabled:text-muted-foreground"
-              >
-                {done ? "Reward credited" : "Claim offer"}
-              </button>
-            </article>
-          );
-        })}
+        {tasks.map((offer) => (
+          <article key={offer.id} className="glass-card rounded-2xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="flex items-center gap-2 text-base font-semibold">
+                  {offer.title}
+                  {offer.hot && <Flame className="size-4 text-gold" />}
+                </h3>
+                {offer.description && (
+                  <p className="mt-1 text-sm text-muted-foreground">{offer.description}</p>
+                )}
+                {offer.meta && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Download className="size-3.5" /> {offer.meta}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 rounded-xl bg-gold px-3 py-1.5 text-sm font-bold text-gold-foreground shadow-gold">
+                +{offer.points}
+              </span>
+            </div>
+
+            <button
+              onClick={() => {
+                if (!offer.url) {
+                  toast.error("This offer has no link yet");
+                  return;
+                }
+                if (!userId) {
+                  toast.error("Sign in again — we need your account id to track this offer");
+                  return;
+                }
+                launchTask(offer.url, userId);
+              }}
+              className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Claim offer
+            </button>
+          </article>
+        ))}
       </section>
     </div>
   );

@@ -126,6 +126,29 @@ function AuthPage() {
           </p>
         </form>
       </div>
+
+      <div className="glass-card mt-5 rounded-3xl p-5">
+        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          Sign-in options to configure in Cloudflare
+        </p>
+        <ul className="mt-3 space-y-3 text-sm">
+          {[
+            { label: "Email verification", need: "An email sender service (to send verification links)" },
+            { label: "Google login", need: "Google OAuth credentials" },
+            { label: "Magic link / OTP", need: "Same email sender service" },
+          ].map((row) => (
+            <li key={row.label} className="flex items-start justify-between gap-3">
+              <span>
+                <span className="font-semibold">{row.label}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{row.need}</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] text-muted-foreground">
+                Need to set up
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
