@@ -1,9 +1,13 @@
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
 
 const WORKER_URL = 'https://syde-hustle-proxy.velley-velley.workers.dev';
 
-export function IndexComponent() {
+export const Route = createFileRoute('/')({
+  component: IndexComponent,
+});
+
+function IndexComponent() {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +29,6 @@ export function IndexComponent() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white">Complete Offers, Cash Out to PayPal</h1>
@@ -41,7 +44,6 @@ export function IndexComponent() {
         </Link>
       </div>
 
-      {/* Offers Grid */}
       {loading ? (
         <div className="text-center py-20 text-slate-500 text-sm">Loading available offers...</div>
       ) : offers.length === 0 ? (
