@@ -4,28 +4,22 @@ const WORKER_URL = 'https://syde-hustle-proxy.velley-velley.workers.dev';
 
 export function WalletComponent() {
   const [accountId, setAccountId] = useState('');
-  const [inputRestoreId, setInputRestoreId] = useState('');
   const [points, setPoints] = useState(0);
   const [cashouts, setCashouts] = useState<any[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
-  const [method, setMethod] = useState('MTN MoMo');
-  const [destination, setDestination] = useState('');
+  const [paypalEmail, setPaypalEmail] = useState('');
   const [ptsAmount, setPtsAmount] = useState(500);
   const [loading, setLoading] = useState(false);
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const syncWallet = async (id: string) => {
+  const loadWallet = async (id: string) => {
     try {
       const res = await fetch(`${WORKER_URL}/api/wallet?tracking_id=${id}`);
       if (res.ok) {
         const data = await res.json();
         setPoints(data.points || 0);
         setCashouts(data.cashouts || []);
-        setHistory(data.history || []);
       }
-    } catch (err) {
-      console.error('Wallet sync error:', err);
-    }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -35,29 +29,17 @@ export function WalletComponent() {
       localStorage.setItem('syde_hustle_account_id', id);
     }
     setAccountId(id);
-    syncWallet(id);
+    loadWallet(id);
 
-    // Auto-sync every 8 seconds
-    const timer = setInterval(() => syncWallet(id), 8000);
+    const timer = setInterval(() => loadWallet(id), 8000);
     return () => clearInterval(timer);
   }, []);
 
-  const handleRestoreAccount = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputRestoreId.trim()) return;
-    const cleanId = inputRestoreId.trim().toLowerCase();
-    localStorage.setItem('syde_hustle_account_id', cleanId);
-    setAccountId(cleanId);
-    syncWallet(cleanId);
-    setInputRestoreId('');
-    setAlert({ type: 'success', text: `Switched to Account ID: ${cleanId}` });
-  };
-
   const handleCashout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!destination.trim()) return;
+    if (!paypalEmail.includes('@')) return;
     setLoading(true);
-    setAlert(null);
+    setMsg(null);
 
     try {
       const res = await fetch(`${WORKER_URL}/api/cashout`, {
@@ -65,122 +47,70 @@ export function WalletComponent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           trackingId: accountId,
-          method,
-          destination: destination.trim(),
+          paypalEmail,
           points: ptsAmount,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setAlert({ type: 'error', text: data.error || 'Withdrawal failed.' });
+        setMsg({ type: 'error', text: data.error || 'Failed to submit cashout.' });
       } else {
-        setAlert({
-          type: 'success',
-          text: `Request submitted! Ref: ${data.cashout.referenceId}. Payout queued to ${method}.`,
-        });
+        setMsg({ type: 'success', text: `Cashout submitted to ${paypalEmail}! Status: Pending.` });
         setPoints(data.balance);
         setCashouts(data.cashouts);
-        setDestination('');
       }
     } catch (err) {
-      setAlert({ type: 'error', text: 'Network connection issue. Please retry.' });
+      setMsg({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Notice Banner to Reduce Inquiries */}
-      <div className="bg-slate-900/90 border border-emerald-500/20 p-4 rounded-xl text-xs text-slate-300 flex items-start space-x-3">
-        <span className="text-emerald-400 text-base">ℹ</span>
-        <div>
-          <strong className="text-white block font-medium">How Tasks & Points Credit:</strong>
-          Completed tasks report back within 2 to 15 minutes once the advertiser verifies the action. Keep this tab open; your balance auto-refreshes.
-        </div>
-      </div>
-
+    <div className="max-w-xl mx-auto space-y-6">
       {/* Balance Card */}
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-2">
-        <div className="flex items-center justify-center space-x-2">
-          <span className="text-xs font-mono text-slate-400">Account ID:</span>
-          <span className="text-xs font-mono text-emerald-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-            {accountId}
-          </span>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(accountId);
-              setAlert({ type: 'success', text: 'Account ID copied to clipboard!' });
-            }}
-            className="text-[10px] text-slate-400 hover:text-white underline"
-          >
-            Copy
-          </button>
-        </div>
-
-        <div className="text-4xl font-black text-emerald-400 font-mono tracking-tight">{points} PTS</div>
-        <div className="text-slate-400 text-xs">Withdrawable Cash: ${(points / 1000).toFixed(2)} USD</div>
-
-        <button
-          onClick={() => syncWallet(accountId)}
-          className="text-xs text-emerald-400 hover:underline pt-2 inline-block font-medium"
-        >
-          ↻ Refresh Balance Now
-        </button>
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-1">
+        <div className="text-xs font-mono text-slate-500">ID: {accountId}</div>
+        <div className="text-4xl font-black text-emerald-400 font-mono">{points} PTS</div>
+        <div className="text-xs text-slate-400">Available: ${(points / 1000).toFixed(2)} USD</div>
       </div>
 
-      {/* Cash Out Form */}
+      {/* Cashout Form */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-        <h2 className="text-base font-bold text-white mb-4">Request Instant Cash Out</h2>
+        <h2 className="text-base font-bold text-white mb-4">Cash Out to PayPal</h2>
 
-        {alert && (
+        {msg && (
           <div
             className={`mb-4 p-3 rounded-lg text-xs border ${
-              alert.type === 'success'
+              msg.type === 'success'
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                 : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
             }`}
           >
-            {alert.text}
+            {msg.text}
           </div>
         )}
 
         <form onSubmit={handleCashout} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Destination Gateway</label>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-            >
-              <option value="MTN MoMo">MTN Mobile Money (MoMo)</option>
-              <option value="M-Pesa">M-Pesa</option>
-              <option value="PayPal">PayPal (Global)</option>
-              <option value="Prepaid Airtime">Vodacom / MTN / Telkom Airtime</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              {method === 'PayPal' ? 'PayPal Email Address' : 'Mobile Number (e.g. 0645007165)'}
-            </label>
+            <label className="block text-xs text-slate-400 mb-1">PayPal Email Address</label>
             <input
-              type="text"
+              type="email"
               required
-              placeholder={method === 'PayPal' ? 'you@gmail.com' : '0645007165'}
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
+              placeholder="your-paypal@email.com"
+              value={paypalEmail}
+              onChange={(e) => setPaypalEmail(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Points to Cash Out (Min: 500 PTS)</label>
+            <label className="block text-xs text-slate-400 mb-1">Points to Cash Out (Min: 500 PTS = $0.50)</label>
             <input
               type="number"
               min="500"
-              step="50"
+              step="100"
               max={points}
               value={ptsAmount}
               onChange={(e) => setPtsAmount(parseInt(e.target.value, 10) || 500)}
@@ -193,54 +123,28 @@ export function WalletComponent() {
             disabled={loading || points < ptsAmount || ptsAmount < 500}
             className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-bold rounded-lg text-xs transition"
           >
-            {loading ? 'Submitting...' : `Cash Out ${(ptsAmount / 1000).toFixed(2)} USD`}
+            {loading ? 'Submitting...' : `Cash Out ${(ptsAmount / 1000).toFixed(2)} USD via PayPal`}
           </button>
         </form>
       </div>
 
-      {/* Account Restore Form (Prevents complaints from users who cleared cookies) */}
-      <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl">
-        <details className="text-xs">
-          <summary className="text-slate-400 cursor-pointer hover:text-white font-medium">
-            Switched device or lost your points? Click to restore Account ID.
-          </summary>
-          <form onSubmit={handleRestoreAccount} className="mt-3 flex gap-2">
-            <input
-              type="text"
-              placeholder="Paste your old Account ID (e.g. sh-v4u4tx5)"
-              value={inputRestoreId}
-              onChange={(e) => setInputRestoreId(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white"
-            />
-            <button
-              type="submit"
-              className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
-            >
-              Restore
-            </button>
-          </form>
-        </details>
-      </div>
-
-      {/* Withdrawal Records */}
+      {/* Cashout History */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-        <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Withdrawal Audit Log</h3>
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">PayPal Cashout History</h3>
         {cashouts.length === 0 ? (
-          <p className="text-xs text-slate-500">No withdrawals on record.</p>
+          <p className="text-xs text-slate-500">No cashouts requested yet.</p>
         ) : (
           <div className="divide-y divide-slate-800">
             {cashouts.map((c: any, i: number) => (
               <div key={i} className="py-2.5 flex items-center justify-between text-xs">
                 <div>
-                  <div className="font-semibold text-white">
-                    {c.method} ({c.destination})
-                  </div>
+                  <div className="font-semibold text-white">{c.email}</div>
                   <div className="text-[10px] text-slate-500 font-mono">
-                    Ref: {c.referenceId || 'N/A'} • {new Date(c.date).toLocaleDateString()}
+                    Ref: {c.id} • {new Date(c.date).toLocaleDateString()}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-bold text-rose-400">-${c.payoutUsd}</div>
+                  <div className="font-mono font-bold text-emerald-400">-${c.usd}</div>
                   <span className="text-[10px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">
                     {c.status}
                   </span>
