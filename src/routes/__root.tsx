@@ -4,17 +4,15 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
-import { hasToken } from "@/lib/api";
 
 function NotFoundComponent() {
   return (
@@ -81,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Syde Hustle" },
-      { name: "description", content: "Earn mobile money from surveys, offers and rewarded videos." },
+      { title: "Syde Hustle — Earn Mobile Money & Rewards" },
+      { name: "description", content: "Complete quick tasks, earn points, and cash out directly to mobile money or airtime." },
       { name: "author", content: "Syde Hustle" },
-      { property: "og:title", content: "Syde Hustle" },
+      { property: "og:title", content: "Syde Hustle — Earn Mobile Money" },
       {
         property: "og:description",
-        content: "Earn mobile money from surveys, offers and rewarded videos.",
+        content: "Verified reward tasks with instant payouts to mobile money and airtime.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -114,11 +112,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
@@ -128,30 +126,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const router = useRouter();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isAuthRoute = pathname === "/auth";
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    if (isAuthRoute) {
-      setChecked(true);
-      return;
-    }
-    if (!hasToken()) {
-      router.navigate({ to: "/auth" });
-      return;
-    }
-    setChecked(true);
-  }, [isAuthRoute, pathname, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <div className="mx-auto min-h-screen max-w-md pb-28">
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        {(isAuthRoute || checked) && <Outlet />}
+        <Outlet />
       </div>
-      {!isAuthRoute && checked && <BottomNav />}
+      <BottomNav />
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
