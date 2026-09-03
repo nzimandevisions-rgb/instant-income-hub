@@ -1,142 +1,81 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  HeadContent,
-  Scripts,
-} from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { Outlet, Link } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 
-import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
-import { BottomNav } from "@/components/BottomNav";
-import { Toaster } from "@/components/ui/sonner";
+const WORKER_URL = 'https://syde-hustle-proxy.velley-velley.workers.dev';
 
-function NotFoundComponent() {
+export function getOrCreateAccountId(): string {
+  if (typeof window === 'undefined') return 'SH-V4U4TX5';
+  let id = localStorage.getItem('syde_hustle_account_id');
+  if (!id) {
+    id = 'SH-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    localStorage.setItem('syde_hustle_account_id', id);
+  }
+  return id;
+}
+
+export function RootComponent() {
+  const [accountId, setAccountId] = useState<string>('');
+  const [points, setPoints] = useState<number>(0);
+
+  const fetchBalance = async (id: string) => {
+    try {
+      const res = await fetch(`${WORKER_URL}/api/wallet?tracking_id=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPoints(data.points || 0);
+      }
+    } catch (e) {
+      console.error('Failed to sync wallet', e);
+    }
+  };
+
+  useEffect(() => {
+    const id = getOrCreateAccountId();
+    setAccountId(id);
+    fetchBalance(id);
+
+    const handleFocus = () => fetchBalance(id);
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Link to="/" className="font-bold text-lg text-emerald-400 tracking-tight">
+            Live Tasks Online
+          </Link>
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-400 font-mono">
+            ID: {accountId}
+          </span>
+        </div>
+
+        <div className="flex items-center space-x-3">
           <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            to="/wallet"
+            className="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/20 transition"
           >
-            Go home
+            <span className="text-xs font-semibold uppercase tracking-wider">Wallet:</span>
+            <span className="font-mono font-bold">{points} PTS</span>
+            <span className="text-xs text-slate-400">(${(points / 1000).toFixed(2)})</span>
+          </Link>
+          <Link
+            to="/wallet"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-sm transition"
+          >
+            Cash Out
           </Link>
         </div>
-      </div>
-    </div>
-  );
-}
+      </header>
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
-  const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Syde Hustle — Earn Mobile Money & Rewards" },
-      { name: "description", content: "Complete quick tasks, earn points, and cash out directly to mobile money or airtime." },
-      { name: "author", content: "Syde Hustle" },
-      { property: "og:title", content: "Syde Hustle — Earn Mobile Money" },
-      {
-        property: "og:description",
-        content: "Verified reward tasks with instant payouts to mobile money and airtime.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap",
-      },
-      {
-        rel: "icon",
-        href: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>",
-      },
-    ],
-  }),
-  shellComponent: RootShell,
-  component: RootComponent,
-  notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
-});
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body suppressHydrationWarning>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
-
-function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <div className="mx-auto min-h-screen max-w-md pb-28">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4">
         <Outlet />
-      </div>
-      <BottomNav />
-      <Toaster position="top-center" />
-    </QueryClientProvider>
+      </main>
+
+      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        © 2026 Syde Hustle. Instant cashouts to PayPal, MTN MoMo, M-Pesa & Airtime.
+      </footer>
+    </div>
   );
 }
