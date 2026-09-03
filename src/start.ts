@@ -1,7 +1,3 @@
-import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server";
-import { getRouter } from "./router";
+import { createStart } from "@tanstack/react-start";
 
-export const startInstance = createStartHandler({
-  createRouter: getRouter,
-  streamHandler: defaultStreamHandler,
-});
+export const startInstance = createStart(() => ({}));
