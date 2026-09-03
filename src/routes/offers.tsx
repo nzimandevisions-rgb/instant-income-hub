@@ -11,30 +11,44 @@ function OffersComponent() {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchOffers = (id: string) => {
+    setLoading(true);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
+    fetch(`${WORKER_URL}/api/offers?tracking_id=${id}`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => {
+        clearTimeout(timer);
+        if (data && Array.isArray(data.offers)) {
+          setOffers(data.offers);
+        }
+      })
+      .catch(() => {
+        clearTimeout(timer);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
     let id = typeof window !== 'undefined' ? localStorage.getItem('syde_hustle_account_id') : null;
     if (!id) {
       id = 'sh-' + Math.random().toString(36).substring(2, 9).toLowerCase();
       if (typeof window !== 'undefined') localStorage.setItem('syde_hustle_account_id', id);
     }
-
-    fetch(`${WORKER_URL}/api/offers?tracking_id=${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.offers) setOffers(data.offers);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+    fetchOffers(id);
   }, []);
 
   return (
     <div className="space-y-6">
-      {/* Offers Banner */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white">Live Tasks & Offers</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Complete tasks, surveys, and apps. Points credit automatically to your PayPal wallet.
+            Complete tasks below. Points update automatically upon confirmation.
           </p>
         </div>
         <Link
@@ -45,12 +59,13 @@ function OffersComponent() {
         </Link>
       </div>
 
-      {/* Offers List */}
       {loading ? (
-        <div className="text-center py-20 text-slate-500 text-sm">Loading verified offers...</div>
+        <div className="text-center py-20 text-slate-500 text-sm animate-pulse">
+          Connecting to live tasks feed...
+        </div>
       ) : offers.length === 0 ? (
         <div className="text-center py-20 text-slate-500 text-sm border border-dashed border-slate-800 rounded-2xl">
-          No offers available for your location right now. Check back soon.
+          No offers available right now. Please refresh in a moment.
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
