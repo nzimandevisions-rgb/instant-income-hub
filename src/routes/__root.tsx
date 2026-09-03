@@ -19,9 +19,7 @@ function RootComponent() {
         const data = await res.json();
         setPoints(data.points || 0);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) {}
   };
 
   useEffect(() => {
