@@ -1,8 +1,13 @@
+import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 const WORKER_URL = 'https://syde-hustle-proxy.velley-velley.workers.dev';
 
-export function WalletComponent() {
+export const Route = createFileRoute('/wallet')({
+  component: WalletComponent,
+});
+
+function WalletComponent() {
   const [accountId, setAccountId] = useState('');
   const [points, setPoints] = useState(0);
   const [cashouts, setCashouts] = useState<any[]>([]);
@@ -19,7 +24,9 @@ export function WalletComponent() {
         setPoints(data.points || 0);
         setCashouts(data.cashouts || []);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
@@ -69,14 +76,12 @@ export function WalletComponent() {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      {/* Balance Card */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-1">
         <div className="text-xs font-mono text-slate-500">ID: {accountId}</div>
         <div className="text-4xl font-black text-emerald-400 font-mono">{points} PTS</div>
         <div className="text-xs text-slate-400">Available: ${(points / 1000).toFixed(2)} USD</div>
       </div>
 
-      {/* Cashout Form */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
         <h2 className="text-base font-bold text-white mb-4">Cash Out to PayPal</h2>
 
@@ -128,7 +133,6 @@ export function WalletComponent() {
         </form>
       </div>
 
-      {/* Cashout History */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
         <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">PayPal Cashout History</h3>
         {cashouts.length === 0 ? (
