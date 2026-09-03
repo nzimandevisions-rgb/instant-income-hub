@@ -83,7 +83,7 @@ function IndexComponent() {
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
               Account ID:{' '}
               <span className="font-mono text-emerald-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                {accountId || 'Loading...'}
+                {accountId || 'Connecting...'}
               </span>{' '}
               • 1,000 PTS = $1.00 USD
             </p>
