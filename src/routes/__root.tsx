@@ -1,12 +1,17 @@
-import { Outlet, Link } from '@tanstack/react-router';
+import { createRootRoute, Outlet, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 const WORKER_URL = 'https://syde-hustle-proxy.velley-velley.workers.dev';
 
-export function RootComponent() {
+export const Route = createRootRoute({
+  component: RootComponent,
+});
+
+function RootComponent() {
   const [points, setPoints] = useState(0);
 
   const fetchBalance = async () => {
+    if (typeof window === 'undefined') return;
     const id = localStorage.getItem('syde_hustle_account_id') || 'guest';
     try {
       const res = await fetch(`${WORKER_URL}/api/wallet?tracking_id=${id}`);
@@ -14,7 +19,9 @@ export function RootComponent() {
         const data = await res.json();
         setPoints(data.points || 0);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
