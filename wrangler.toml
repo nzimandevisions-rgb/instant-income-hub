@@ -1,0 +1,12 @@
+name = "instant-income-hub"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[site]
+bucket = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "instant-income-db"
+database_id = "2a60d0cb-a22e-4d31-95f1-0d7a65e5dbeb"
