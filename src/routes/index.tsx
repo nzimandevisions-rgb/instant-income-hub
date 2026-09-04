@@ -1,135 +1,94 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
-
-const TASKS = [
-  {
-    id: 'task_1',
-    title: 'Enter for a Samsung Galaxy S25 Giveaway',
-    points: 340,
-    rewardUsd: '$0.34',
-    tag: 'HOT',
-    baseLink: 'https://www.cpagrip.com/show.php?l=0&u=2554086&id=3',
-  },
-  {
-    id: 'task_2',
-    title: 'Enter for the Latest Smart Watch',
-    points: 300,
-    rewardUsd: '$0.30',
-    tag: 'POPULAR',
-    baseLink: 'https://www.cpagrip.com/show.php?l=0&u=2554086&id=6',
-  },
-  {
-    id: 'task_3',
-    title: 'Get the Best Instant Rewards & Free Signup',
-    points: 200,
-    rewardUsd: '$0.20',
-    tag: 'EASY',
-    baseLink: 'https://www.cpagrip.com/show.php?l=0&u=2554086&id=5',
-  },
-  {
-    id: 'task_4',
-    title: 'Enter for Your PlayStation 5 Sweepstakes',
-    points: 130,
-    rewardUsd: '$0.13',
-    tag: 'FAST',
-    baseLink: 'https://www.cpagrip.com/show.php?l=0&u=2554086&id=4',
-  },
-  {
-    id: 'task_5',
-    title: 'Take the New Finance & Opinion Survey',
-    points: 100,
-    rewardUsd: '$0.10',
-    tag: 'SURVEY',
-    baseLink: 'https://www.cpagrip.com/show.php?l=0&u=2554086&id=2',
-  },
-  {
-    id: 'task_6',
-    title: 'Protect Your Personal Data & Quick Setup',
-    points: 100,
-    rewardUsd: '$0.10',
-    tag: 'INSTANT',
-    baseLink: 'https://www.cpagrip.com/show.php?l=0&u=2554086&id=1',
-  },
-];
+import { createFileRoute } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
 
 export const Route = createFileRoute('/')({
-  component: IndexComponent,
-});
+  component: DashboardPage,
+})
 
-function IndexComponent() {
-  const [accountId, setAccountId] = useState('');
+function DashboardPage() {
+  const [points, setPoints] = useState(0)
+  // Get user email or ID from your auth session, or fallback to current user
+  const userEmail = "Velley.velley@gmail.com" 
 
+  // Fetch real-time points balance from Cloudflare D1
   useEffect(() => {
-    let id = localStorage.getItem('syde_hustle_account_id');
-    if (!id) {
-      id = 'sh-' + Math.random().toString(36).substring(2, 9).toLowerCase();
-      localStorage.setItem('syde_hustle_account_id', id);
-    }
-    setAccountId(id);
-  }, []);
+    fetch(`/api/user/balance?user=${encodeURIComponent(userEmail)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data.points === 'number') {
+          setPoints(data.points)
+        }
+      })
+      .catch((err) => console.error("Balance fetch error:", err))
+  }, [userEmail])
+
+  // Conversion: 1,000 Points = $1.00 USD
+  const cashValue = (points / 1000).toFixed(2)
+
+  // Tracking link: Automatically attaches the user ID so postback credits them
+  const openOffer = (partnerUrl: string) => {
+    const trackedUrl = `${partnerUrl}&subid1=${encodeURIComponent(userEmail)}&playerid=${encodeURIComponent(userEmail)}`
+    window.open(trackedUrl, '_blank')
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 p-6 sm:p-8 rounded-2xl shadow-xl shadow-black/40">
-        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-400 mb-2">
-              <span>● Live Verified Tasks</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Complete Offers, Cash Out to PayPal
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Account ID:{' '}
-              <span className="font-mono text-emerald-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                {accountId || 'Connecting...'}
-              </span>{' '}
-              • 1,000 PTS = $1.00 USD
-            </p>
-          </div>
+    <main style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
+      {/* Earnings Overview Card */}
+      <section style={{ background: '#1e293b', color: '#fff', borderRadius: '12px', padding: '24px', marginBottom: '24px', textAlign: 'center' }}>
+        <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#94a3b8' }}>Available Balance</h2>
+        <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#22c55e' }}>{points} PTS</div>
+        <div style={{ fontSize: '20px', color: '#38bdf8', marginTop: '4px' }}>≈ ${cashValue} USD</div>
+        <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>Active Account: {userEmail}</p>
+      </section>
 
-          <Link
-            to="/wallet"
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-transform active:scale-95 whitespace-nowrap shadow-lg shadow-emerald-500/20"
-          >
-            View My Wallet →
-          </Link>
-        </div>
-      </div>
+      {/* Available Jobs / Surveys / Tasks */}
+      <section>
+        <h3 style={{ fontSize: '20px', marginBottom: '16px' }}>Available Tasks & Offers</h3>
 
-      {/* Styled Grid of Tasks */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {TASKS.map((task) => (
-          <div
-            key={task.id}
-            className="bg-slate-900/90 border border-slate-800/80 hover:border-emerald-500/40 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/20 group"
-          >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+          
+          {/* Task 1: Adscend Media Offerwall */}
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-extrabold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  {task.tag}
-                </span>
-                <span className="text-xs font-mono font-black text-emerald-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800/80">
-                  +{task.points} PTS ({task.rewardUsd})
-                </span>
-              </div>
-              <h3 className="font-bold text-white text-base group-hover:text-emerald-300 transition-colors">
-                {task.title}
-              </h3>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '16px' }}>High-Paying Surveys & Apps</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Complete market research surveys and app installs.</p>
+              <span style={{ display: 'inline-block', marginTop: '6px', background: '#dcfce7', color: '#15803d', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px' }}>
+                +150 to +2,500 PTS
+              </span>
             </div>
-
-            <a
-              href={`${task.baseLink}&tracking_id=${accountId || 'guest'}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 block w-full text-center bg-slate-800/90 hover:bg-emerald-500 hover:text-slate-950 active:scale-98 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md"
-            >
-              Start Offer & Earn
-            </a>
+            <button 
+              onClick={() => openOffer("https://adscendmedia.com/adwall/publisher/YOUR_PUB_ID/profile/YOUR_PROFILE_ID?")}
+              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Start Task
+            </button>
           </div>
-        ))}
-      </div>
-    </div>
-  );
+
+          {/* Task 2: AdGem Offerwall */}
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '16px' }}>Mobile Games & Quick Tasks</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Play sponsored games and reach milestone levels.</p>
+              <span style={{ display: 'inline-block', marginTop: '6px', background: '#dcfce7', color: '#15803d', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px' }}>
+                +500 to +10,000 PTS
+              </span>
+            </div>
+            <button 
+              onClick={() => openOffer("https://api.adgem.com/v1/wall?appid=YOUR_ADGEM_APP_ID")}
+              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Start Task
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Payout Information */}
+      <section style={{ marginTop: '32px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+        <h4 style={{ margin: '0 0 8px 0' }}>Instant Payout Rules</h4>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+          Minimum withdrawal threshold is <strong>5,000 PTS ($5.00)</strong>. Payouts are processed to verified PayPal accounts.
+        </p>
+      </section>
+    </main>
+  )
 }
