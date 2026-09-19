@@ -1,24 +1,24 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
-const WORKER_URL = 'https://syde-hustle-proxy.velley-velley.workers.dev';
-
-export const Route = createFileRoute('/wallet')({
+export const Route = createFileRoute("/wallet")({
   component: WalletComponent,
 });
 
+type Cashout = { email: string; id: string; date: string; usd: string | number; status: string };
+
 function WalletComponent() {
-  const [accountId, setAccountId] = useState('');
+  const [accountId, setAccountId] = useState("");
   const [points, setPoints] = useState(0);
-  const [cashouts, setCashouts] = useState<any[]>([]);
-  const [paypalEmail, setPaypalEmail] = useState('');
+  const [cashouts, setCashouts] = useState<Cashout[]>([]);
+  const [paypalEmail, setPaypalEmail] = useState("");
   const [ptsAmount, setPtsAmount] = useState(500);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const loadWallet = async (id: string) => {
     try {
-      const res = await fetch(`${WORKER_URL}/api/wallet?tracking_id=${id}`);
+      const res = await fetch(`/api/user/balance?user=${encodeURIComponent(id)}`);
       if (res.ok) {
         const data = await res.json();
         setPoints(data.points || 0);
@@ -30,10 +30,10 @@ function WalletComponent() {
   };
 
   useEffect(() => {
-    let id = localStorage.getItem('syde_hustle_account_id');
+    let id = localStorage.getItem("syde_hustle_account_id");
     if (!id) {
-      id = 'sh-' + Math.random().toString(36).substring(2, 9).toLowerCase();
-      localStorage.setItem('syde_hustle_account_id', id);
+      id = "sh-" + Math.random().toString(36).substring(2, 9).toLowerCase();
+      localStorage.setItem("syde_hustle_account_id", id);
     }
     setAccountId(id);
     loadWallet(id);
@@ -44,31 +44,31 @@ function WalletComponent() {
 
   const handleCashout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paypalEmail.includes('@')) return;
+    if (!paypalEmail.includes("@")) return;
     setLoading(true);
     setMsg(null);
 
     try {
-      const res = await fetch(`${WORKER_URL}/api/cashout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/user/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          trackingId: accountId,
-          paypalEmail,
+          userId: accountId,
+          destination: paypalEmail,
           points: ptsAmount,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setMsg({ type: 'error', text: data.error || 'Failed to submit cashout.' });
+        setMsg({ type: "error", text: data.error || "Failed to submit cashout." });
       } else {
-        setMsg({ type: 'success', text: `Cashout submitted to ${paypalEmail}! Status: Pending.` });
+        setMsg({ type: "success", text: `Cashout submitted to ${paypalEmail}! Status: Pending.` });
         setPoints(data.balance);
         setCashouts(data.cashouts);
       }
     } catch (err) {
-      setMsg({ type: 'error', text: 'Network error. Please try again.' });
+      setMsg({ type: "error", text: "Network error. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -88,9 +88,9 @@ function WalletComponent() {
         {msg && (
           <div
             className={`mb-4 p-3 rounded-lg text-xs border ${
-              msg.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+              msg.type === "success"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                : "bg-rose-500/10 border-rose-500/30 text-rose-300"
             }`}
           >
             {msg.text}
@@ -111,7 +111,9 @@ function WalletComponent() {
           </div>
 
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Points to Cash Out (Min: 500 PTS = $0.50)</label>
+            <label className="block text-xs text-slate-400 mb-1">
+              Points to Cash Out (Min: 500 PTS = $0.50)
+            </label>
             <input
               type="number"
               min="500"
@@ -128,18 +130,20 @@ function WalletComponent() {
             disabled={loading || points < ptsAmount || ptsAmount < 500}
             className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-bold rounded-lg text-xs transition"
           >
-            {loading ? 'Submitting...' : `Cash Out ${(ptsAmount / 1000).toFixed(2)} USD via PayPal`}
+            {loading ? "Submitting..." : `Cash Out ${(ptsAmount / 1000).toFixed(2)} USD via PayPal`}
           </button>
         </form>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-        <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">PayPal Cashout History</h3>
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
+          PayPal Cashout History
+        </h3>
         {cashouts.length === 0 ? (
           <p className="text-xs text-slate-500">No cashouts requested yet.</p>
         ) : (
           <div className="divide-y divide-slate-800">
-            {cashouts.map((c: any, i: number) => (
+            {cashouts.map((c, i: number) => (
               <div key={i} className="py-2.5 flex items-center justify-between text-xs">
                 <div>
                   <div className="font-semibold text-white">{c.email}</div>
