@@ -1,207 +1,253 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { useFeed, launchTask, type LiveTask } from "@/lib/feed";
+import { getOrCreateAccountId } from "@/lib/account";
 
-export const Route = createFileRoute('/')({
-  component: DashboardPage,
-})
-
-function DashboardPage() {
-  const [userId, setUserId] = useState<string>('')
-  const [points, setPoints] = useState<number>(0)
-  const [payoutTarget, setPayoutTarget] = useState<string>('')
-  const [payoutStatus, setPayoutStatus] = useState<string>('')
-
-  // 1. Initialize or recover unique Lead Account ID
-  useEffect(() => {
-    let storedId = localStorage.getItem('syde_user_id')
-    if (!storedId) {
-      storedId = 'sh-' + Math.random().toString(36).substring(2, 9)
-      localStorage.setItem('syde_user_id', storedId)
-    }
-    setUserId(storedId)
-  }, [])
-
-  // 2. Fetch live D1 balance for this specific lead
-  useEffect(() => {
-    if (!userId) return
-
-    const loadBalance = () => {
-      fetch(`/api/user/balance?user=${encodeURIComponent(userId)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && typeof data.points === 'number') {
-            setPoints(data.points)
-          }
-        })
-        .catch((err) => console.error('Error fetching balance:', err))
-    }
-
-    loadBalance()
-    // Poll every 15 seconds so points automatically pop up after completing a task
-    const interval = setInterval(loadBalance, 15000)
-    return () => clearInterval(interval)
-  }, [userId])
-
-  // Conversion: 1,000 PTS = $1.00 USD (≈ R18.00 ZAR)
-  const usdValue = (points / 1000).toFixed(2)
-
-  // 3. Tracking Link Generator (Ties every task to this lead)
-  const startTask = (baseUrl: string) => {
-    if (!userId) return
-    const delimiter = baseUrl.includes('?') ? '&' : '?'
-    const trackedUrl = `${baseUrl}${delimiter}subid1=${encodeURIComponent(userId)}&subId=${encodeURIComponent(userId)}&playerid=${encodeURIComponent(userId)}`
-    window.open(trackedUrl, '_blank')
-  }
-
-  // 4. Withdrawal Handler
-  const handleWithdrawal = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (points < 1000) {
-      setPayoutStatus('Minimum withdrawal is 1,000 PTS ($1.00). Keep completing tasks!')
-      return
-    }
-    if (!payoutTarget) {
-      setPayoutStatus('Please enter your PayPal email or Mobile/Account number.')
-      return
-    }
-
-    setPayoutStatus('Submitting payout request...')
-
-    try {
-      const res = await fetch('/api/withdraw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId,
-          points: points,
-          destination: payoutTarget,
-        }),
-      })
-
-      if (res.ok) {
-        setPayoutStatus('Withdrawal request received! Processing within 24 hours.')
-        setPoints(0)
-      } else {
-        setPayoutStatus('Withdrawal queued for administrator review.')
-      }
-    } catch {
-      setPayoutStatus('Request queued! Support will review your payout.')
-    }
-  }
-
+export const Route = createFileRoute("/")({ component: DashboardPage });
+type Wall = {
+  key: string;
+  name: string;
+  description: string;
+  url: string;
+  trackingParam: string;
+  badge: string;
+};
+const WALLS: Wall[] = [
+  {
+    key: "cpalead",
+    name: "CPAlead Offers",
+    description: "Games, apps, surveys, and daily tasks.",
+    url: "https://www.mobtrk.link/wall/HnRe",
+    trackingParam: "subid",
+    badge: "LIVE WALL",
+  },
+  {
+    key: "cpagrip",
+    name: "CPAGrip Global Offers",
+    description: "Downloads, email submits, and quick offers.",
+    url: "https://www.cpagrip.com/showoffer.php",
+    trackingParam: "subid",
+    badge: "FAST",
+  },
+  {
+    key: "monlix",
+    name: "Monlix Surveys & Tasks",
+    description: "Surveys, micro-tasks, and mobile discovery.",
+    url: "https://survey.monlix.com/",
+    trackingParam: "userId",
+    badge: "SURVEYS",
+  },
+  {
+    key: "adscend",
+    name: "Adscend Media Rewards",
+    description: "Video rewards, surveys, and brand engagement.",
+    url: "https://asmtech.adscendmedia.com/adwall/publisher/3359608/profile/default",
+    trackingParam: "subid1",
+    badge: "REWARDS",
+  },
+  {
+    key: "adgem",
+    name: "AdGem Gaming Wall",
+    description: "Mobile games and high-reward install tasks.",
+    url: "https://player.adgem.com/v1/wall",
+    trackingParam: "playerid",
+    badge: "GAMES",
+  },
+];
+function trackedUrl(wall: Wall, id: string) {
+  const url = new URL(wall.url);
+  if (wall.key === "monlix") url.searchParams.set("appId", "sydehustle");
+  if (wall.key === "adgem") url.searchParams.set("appid", "sydehustle");
+  url.searchParams.set(wall.trackingParam, id);
+  return url.toString();
+}
+function TaskCard({ task, id }: { task: LiveTask; id: string }) {
   return (
-    <main style={{ maxWidth: '750px', margin: '0 auto', padding: '16px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      
-      {/* Lead Wallet Banner */}
-      <section style={{ background: '#0f172a', color: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-        <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          Your Account ID: <strong style={{ color: '#38bdf8' }}>{userId || 'Loading...'}</strong>
-        </p>
-        <h1 style={{ margin: '8px 0', fontSize: '42px', fontWeight: '800', color: '#22c55e' }}>
-          {points} <span style={{ fontSize: '20px', color: '#94a3b8' }}>PTS</span>
-        </h1>
-        <p style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#e2e8f0' }}>
-          ≈ ${usdValue} USD
-        </p>
-        <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-          1,000 PTS = $1.00 USD • Verified Instant Payouts
-        </p>
-      </section>
-
-      {/* Verified Tasks Section */}
-      <section style={{ marginTop: '28px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#22c55e' }}>●</span> Live Verified Tasks
-        </h2>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          
-          {/* Task 1 */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ background: '#fee2e2', color: '#ef4444', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px' }}>HOT</span>
-              <h3 style={{ margin: '6px 0 2px 0', fontSize: '16px' }}>Samsung Galaxy S25 Sweepstakes</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Enter details & verify signup.</p>
-              <strong style={{ color: '#15803d', fontSize: '14px', display: 'block', marginTop: '4px' }}>+340 PTS ($0.34)</strong>
-            </div>
-            <button 
-              onClick={() => startTask("https://YOUR_OFFER_LINK_1")}
-              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
-              Start Offer
-            </button>
+    <article className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/90 p-5 sm:flex-row sm:items-center">
+      <div>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-extrabold uppercase text-emerald-400">
+            {task.hot ? "HOT" : "LIVE"}
+          </span>
+          {task.meta && <span className="text-[11px] text-slate-500">{task.meta}</span>}
+          <span className="rounded-lg bg-slate-950 px-2.5 py-1 font-mono text-xs font-black text-emerald-400">
+            +{task.points.toLocaleString()} PTS
+          </span>
+        </div>
+        <h3 className="text-base font-bold text-white">{task.title}</h3>
+        {task.description && <p className="mt-1 text-xs text-slate-400">{task.description}</p>}
+      </div>
+      <button
+        type="button"
+        disabled={!task.url}
+        onClick={() => task.url && launchTask(task.url, id)}
+        className="shrink-0 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 hover:text-slate-950 disabled:opacity-40"
+      >
+        {task.url ? "Start & Earn" : "Link unavailable"}
+      </button>
+    </article>
+  );
+}
+function DashboardPage() {
+  const [id, setId] = useState("");
+  const [tab, setTab] = useState<"all" | "offer" | "survey">("all");
+  const [status, setStatus] = useState("");
+  const [destination, setDestination] = useState("");
+  useEffect(() => {
+    setId(getOrCreateAccountId());
+  }, []);
+  const offers = useFeed("offer", id);
+  const surveys = useFeed("survey", id);
+  const tasks =
+    tab === "offer"
+      ? offers.tasks
+      : tab === "survey"
+        ? surveys.tasks
+        : [...offers.tasks, ...surveys.tasks];
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    setDestination("");
+    setStatus(
+      "Your balance refreshes automatically after a confirmed network postback. Open Wallet to request a payout.",
+    );
+  };
+  return (
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-slate-900 to-emerald-950/50 p-6 sm:p-8">
+        <div className="relative">
+          <div className="mb-3 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+            ● Earn points from completed tasks
           </div>
-
-          {/* Task 2 */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ background: '#e0f2fe', color: '#0284c7', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px' }}>POPULAR</span>
-              <h3 style={{ margin: '6px 0 2px 0', fontSize: '16px' }}>Latest Smart Watch Giveaway</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Complete simple 2-minute survey.</p>
-              <strong style={{ color: '#15803d', fontSize: '14px', display: 'block', marginTop: '4px' }}>+300 PTS ($0.30)</strong>
-            </div>
-            <button 
-              onClick={() => startTask("https://YOUR_OFFER_LINK_2")}
-              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
-              Start Offer
-            </button>
-          </div>
-
-          {/* Task 3 */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ background: '#dcfce7', color: '#16a34a', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px' }}>EASY</span>
-              <h3 style={{ margin: '6px 0 2px 0', fontSize: '16px' }}>Instant App Rewards & Signup</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Install and open app.</p>
-              <strong style={{ color: '#15803d', fontSize: '14px', display: 'block', marginTop: '4px' }}>+200 PTS ($0.20)</strong>
-            </div>
-            <button 
-              onClick={() => startTask("https://YOUR_OFFER_LINK_3")}
-              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
-              Start Offer
-            </button>
-          </div>
-
+          <h1 className="text-2xl font-black text-white sm:text-3xl">
+            Complete offers. Build your balance.
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-slate-400">
+            Every wall is linked to your account ID. When a network confirms completion, the
+            postback credits your points automatically.
+          </p>
+          <p className="mt-4 font-mono text-xs text-slate-500">
+            Account ID: <span className="text-emerald-400">{id || "Creating account..."}</span>
+          </p>
         </div>
       </section>
-
-      {/* Cash Out / Withdrawal Section */}
-      <section style={{ marginTop: '32px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 6px 0' }}>Request Payout</h2>
-        <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px 0' }}>
-          Minimum cash-out: <strong>1,000 PTS ($1.00 USD)</strong>. Supports PayPal, 1Voucher, or Bank Transfer.
-        </p>
-
-        <form onSubmit={handleWithdrawal} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <input 
-            type="text" 
-            placeholder="Enter PayPal Email or Phone/Account Number" 
-            value={payoutTarget}
-            onChange={(e) => setPayoutTarget(e.target.value)}
-            style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-          />
-          <button 
-            type="submit" 
-            disabled={points < 1000}
-            style={{ 
-              background: points >= 1000 ? '#16a34a' : '#94a3b8', 
-              color: '#fff', 
-              border: 'none', 
-              padding: '12px', 
-              borderRadius: '8px', 
-              fontWeight: '700', 
-              cursor: points >= 1000 ? 'pointer' : 'not-allowed' 
-            }}>
-            {points >= 1000 ? 'Withdraw Funds Now' : 'Earn At Least 1,000 PTS to Cash Out'}
-          </button>
-        </form>
-
-        {payoutStatus && (
-          <p style={{ marginTop: '10px', fontSize: '13px', color: '#0369a1', fontWeight: '600' }}>
-            {payoutStatus}
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+              All available networks
+            </p>
+            <h2 className="mt-1 text-xl font-black text-white">Offer walls</h2>
+          </div>
+          <p className="text-xs text-slate-500">
+            Use the same account ID everywhere so rewards match.
+          </p>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {WALLS.map((wall) => (
+            <a
+              key={wall.key}
+              href={id ? trackedUrl(wall, id) : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group rounded-2xl border border-slate-800 bg-slate-950/70 p-4 hover:border-emerald-500/50"
+            >
+              <div className="flex justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
+                  {wall.badge}
+                </span>
+                <span className="text-slate-500">↗</span>
+              </div>
+              <h3 className="mt-3 text-sm font-bold text-white group-hover:text-emerald-300">
+                {wall.name}
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">{wall.description}</p>
+              <div className="mt-4 text-xs font-bold text-emerald-400">Browse offers →</div>
+            </a>
+          ))}
+        </div>
+      </section>
+      <section className="space-y-4">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+              Configured live feeds
+            </p>
+            <h2 className="mt-1 text-xl font-black text-white">Individual offers</h2>
+          </div>
+          <div className="flex rounded-xl border border-slate-800 bg-slate-900 p-1">
+            {(["all", "offer", "survey"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setTab(item)}
+                className={
+                  tab === item
+                    ? "rounded-lg bg-emerald-500 px-3 py-2 text-[11px] font-bold capitalize text-slate-950"
+                    : "rounded-lg px-3 py-2 text-[11px] font-bold capitalize text-slate-400"
+                }
+              >
+                {item === "all" ? "All" : item + "s"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {(offers.loading || surveys.loading) && (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
+            Loading configured offer feeds…
+          </div>
+        )}
+        {!(offers.loading || surveys.loading) && tasks.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-6 text-center text-sm text-slate-400">
+            No API-backed individual offers are configured yet. The five offer walls above are ready
+            to browse now.
+          </div>
+        )}
+        {(offers.error || surveys.error) && (
+          <p className="text-xs text-amber-300">
+            An optional live feed is unavailable; the offer walls remain available.
           </p>
         )}
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <TaskCard key={task.id + task.title} task={task} id={id} />
+          ))}
+        </div>
       </section>
-
-    </main>
-  )
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-bold text-white">Ready to cash out?</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              Wallet balances refresh after confirmed completions.
+            </p>
+          </div>
+          <Link
+            to="/wallet"
+            className="rounded-xl border border-emerald-500/40 px-4 py-2 text-xs font-bold text-emerald-300"
+          >
+            View wallet
+          </Link>
+        </div>
+        <form onSubmit={submit} className="mt-4 flex gap-2">
+          <input
+            aria-label="Payout destination"
+            value={destination}
+            onChange={(event) => setDestination(event.target.value)}
+            placeholder="PayPal email (optional)"
+            className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-white"
+          />
+          <button
+            type="submit"
+            className="rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300"
+          >
+            Check status
+          </button>
+        </form>
+        {status && <p className="mt-3 text-xs text-emerald-300">{status}</p>}
+      </section>
+      <p className="text-center text-[11px] text-slate-600">
+        1,000 points = $1.00 USD. Third-party networks control approval and completion.
+      </p>
+    </div>
+  );
 }
