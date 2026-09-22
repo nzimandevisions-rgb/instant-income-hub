@@ -62,7 +62,7 @@ export const Route = createFileRoute("/api/user/withdraw")({
 
           const updatedUser = await db.prepare("SELECT points FROM users WHERE id = ?").bind(userId).first<Record<string, unknown>>();
           const newBalance = Number(updatedUser?.points ?? 0);
-          return Response.json({ ok: true, balance: Number.isFinite(newBalance) ? newBalance : 0, cashoutId });
+          return Response.json({ ok: true, balance: Number.isFinite(newBalance) ? newBalance : 0, cashouts: cashoutRows.results ?? [], cashoutId });
         } catch (error) {
           console.error("[withdraw]", error);
           return Response.json({ error: "Unable to submit the cash-out request." }, { status: 500 });
