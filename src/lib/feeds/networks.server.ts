@@ -179,7 +179,61 @@ async function digitalTurbine(kind: FeedKind, subid: string | null): Promise<Nor
   }));
 }
 
-const adapters = [adscend, adgem, digitalTurbine];
+
+/* ---------------------------------- CPAlead --------------------------------- */
+
+async function cpalead(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+  if (kind !== "offer" || !subid) return [];
+
+  // The publisher ID is public configuration, not a secret. Keep it overrideable
+  // so the same build can be moved to a different approved publisher account.
+  const publisherId = env("CPALEAD_PUBLISHER_ID") ?? "3359608";
+  const url = new URL("https://www.cpalead.com/api/offers");
+  url.searchParams.set("id", publisherId);
+  url.searchParams.set("country", "ZA");
+  url.searchParams.set("device", "user");
+  url.searchParams.set("limit", "100");
+  url.searchParams.set("subid", subid);
+  url.searchParams.set(
+    "fields",
+    "id,title,description,conversion,link,amount,payout_currency,offer_rank,device,events",
+  );
+
+  const payload = await getJson(url.toString());
+  const offers = rowsFrom(payload);
+
+  return offers
+    .map((row, i) => {
+      const events = Array.isArray(row["events"])
+        ? (row["events"] as Record<string, unknown>[])
+        : [];
+      const eventPayouts = events
+        .map((event) => num(event["amount"]))
+        .filter((value): value is number => value !== null && value > 0);
+      const basePayout = pickNum(row, ["amount"]);
+      const publisherPayout =
+        eventPayouts.length > 0 ? Math.max(basePayout ?? 0, ...eventPayouts) : basePayout;
+      const rewardPoints = payoutToPoints(publisherPayout);
+      if (rewardPoints <= 0) return null;
+
+      const conversion = pickStr(row, ["conversion", "instructions"]);
+      return {
+        id: pickStr(row, ["id", "offer_id", "campaign_id"]) ?? `cpalead_${i}`,
+        title: pickStr(row, ["title", "name"]) ?? "Available task",
+        description: conversion
+          ? (pickStr(row, ["description"]) ?? "") + (pickStr(row, ["description"]) ? " " : "") + conversion
+          : pickStr(row, ["description"]) ?? "",
+        points: rewardPoints,
+        meta: pickStr(row, ["device", "payout_type"]) ?? "Offer",
+        url: pickStr(row, ["link", "url", "click_url"]),
+        hot: Number(pickNum(row, ["offer_rank"]) ?? 9999) <= 10,
+        network: "rewards",
+      } satisfies NormalizedTask;
+    })
+    .filter((task): task is NormalizedTask => task !== null);
+}
+
+const adapters = [cpalead, adscend, adgem, digitalTurbine];
 
 /** Runs every configured network in parallel and merges the results. */
 export async function loadFeed(kind: FeedKind, subid: string | null) {
