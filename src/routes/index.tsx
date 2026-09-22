@@ -4,7 +4,8 @@ import { useFeed, type LiveTask } from "@/lib/feed";
 import { getOrCreateAccountId } from "@/lib/account";
 
 export const Route = createFileRoute("/")({ component: DashboardPage });
-function TaskCard({ task, id, onStart }: { task: LiveTask; id: string; onStart: (task: LiveTask) => void }) {
+
+function TaskCard({ task, onStart }: { task: LiveTask; onStart: (task: LiveTask) => void }) {
   return (
     <article className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/90 p-5 sm:flex-row sm:items-center">
       <div>
@@ -31,15 +32,18 @@ function TaskCard({ task, id, onStart }: { task: LiveTask; id: string; onStart: 
     </article>
   );
 }
+
 function DashboardPage() {
   const [id, setId] = useState("");
   const [tab, setTab] = useState<"all" | "offer" | "survey">("all");
   const [status, setStatus] = useState("");
   const [destination, setDestination] = useState("");
   const [activeTask, setActiveTask] = useState<LiveTask | null>(null);
+
   useEffect(() => {
     setId(getOrCreateAccountId());
   }, []);
+
   const offers = useFeed("offer", id);
   const surveys = useFeed("survey", id);
   const tasks =
@@ -48,13 +52,13 @@ function DashboardPage() {
       : tab === "survey"
         ? surveys.tasks
         : [...offers.tasks, ...surveys.tasks];
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setDestination("");
-    setStatus(
-      "Your balance refreshes automatically after a confirmed network postback. Open Wallet to request a payout.",
-    );
+    setStatus("Your balance refreshes automatically after a confirmed network postback. Open Wallet to request a payout.");
   };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-slate-900 to-emerald-950/50 p-6 sm:p-8">
@@ -62,25 +66,21 @@ function DashboardPage() {
           <div className="mb-3 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
             ● Earn points from completed tasks
           </div>
-          <h1 className="text-2xl font-black text-white sm:text-3xl">
-            Complete offers. Build your balance.
-          </h1>
+          <h1 className="text-2xl font-black text-white sm:text-3xl">Complete offers. Build your balance.</h1>
           <p className="mt-2 max-w-xl text-sm text-slate-400">
-            Complete individual tasks directly through Syde Hustle. Your account ID is used for
-            approved tracking and confirmed completions are credited automatically.
+            Complete tasks inside Syde Hustle. Your account ID is used for approved tracking and confirmed completions are credited automatically.
           </p>
           <p className="mt-4 font-mono text-xs text-slate-500">
             Account ID: <span className="text-emerald-400">{id || "Creating account..."}</span>
           </p>
         </div>
       </section>
+
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-              Configured live feeds
-            </p>
-            <h2 className="mt-1 text-xl font-black text-white">Individual offers</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Available tasks</p>
+            <h2 className="mt-1 text-xl font-black text-white">Earn by completing tasks</h2>
           </div>
           <div className="flex rounded-xl border border-slate-800 bg-slate-900 p-1">
             {(["all", "offer", "survey"] as const).map((item) => (
@@ -99,40 +99,68 @@ function DashboardPage() {
             ))}
           </div>
         </div>
+
         {(offers.loading || surveys.loading) && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
-            Loading configured offer feeds…
+            Loading available tasks…
           </div>
         )}
+
         {!(offers.loading || surveys.loading) && tasks.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-6 text-center text-sm text-slate-400">
-            No eligible offers are available right now. New offers will appear here automatically when an
-            approved feed is connected.
+            No eligible tasks are available right now. New tasks will appear automatically when an approved feed has eligible inventory.
           </div>
         )}
+
         {(offers.error || surveys.error) && (
-          <p className="text-xs text-amber-300">
-            An optional live feed is temporarily unavailable. Please check back shortly.
-          </p>
+          <p className="text-xs text-amber-300">Some task inventory is temporarily unavailable. Please check back shortly.</p>
         )}
+
         <div className="space-y-3">
           {tasks.map((task) => (
-            <TaskCard key={task.id + task.title} task={task} id={id} />
+            <TaskCard key={task.id + task.title} task={task} onStart={setActiveTask} />
           ))}
         </div>
       </section>
-      {activeTask?.url && (\n        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-2 sm:p-6" role="dialog" aria-modal="true" aria-label="Syde Hustle task">\n          <div className="flex h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">\n            <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">\n              <div className="min-w-0">\n                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Syde Hustle Task</p>\n                <h2 className="truncate text-sm font-bold text-white">{activeTask.title}</h2>\n              </div>\n              <button type="button" onClick={() => setActiveTask(null)} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">Close</button>\n            </div>\n            <iframe\n              title="Syde Hustle task"\n              src={activeTask.url}\n              className="min-h-0 flex-1 bg-white"\n              sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-same-origin"\n              referrerPolicy="strict-origin-when-cross-origin"\n            />\n            <div className="border-t border-slate-800 px-4 py-2 text-center text-[10px] text-slate-500">\n              Keep this Syde Hustle window open while completing the task. Rewards are credited only after a confirmed completion.\n            </div>\n          </div>\n        </div>\n      )}\n      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+
+      {activeTask?.url && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-2 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Syde Hustle task"
+        >
+          <div className="flex h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Syde Hustle Task</p>
+                <h2 className="truncate text-sm font-bold text-white">{activeTask.title}</h2>
+              </div>
+              <button type="button" onClick={() => setActiveTask(null)} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">
+                Close
+              </button>
+            </div>
+            <iframe
+              title="Syde Hustle task"
+              src={activeTask.url}
+              className="min-h-0 flex-1 bg-white"
+              sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-same-origin"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+            <div className="border-t border-slate-800 px-4 py-2 text-center text-[10px] text-slate-500">
+              Complete the task in this Syde Hustle window. Rewards are credited only after a confirmed completion.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-bold text-white">Ready to cash out?</h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Wallet balances refresh after confirmed completions.
-            </p>
+            <p className="mt-1 text-xs text-slate-400">Wallet balances refresh after confirmed completions.</p>
           </div>
-          <Link
-            to="/wallet"
-            className="rounded-xl border border-emerald-500/40 px-4 py-2 text-xs font-bold text-emerald-300"
-          >
+          <Link to="/wallet" className="rounded-xl border border-emerald-500/40 px-4 py-2 text-xs font-bold text-emerald-300">
             View wallet
           </Link>
         </div>
@@ -144,15 +172,11 @@ function DashboardPage() {
             placeholder="PayPal email (optional)"
             className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-white"
           />
-          <button
-            type="submit"
-            className="rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300"
-          >
-            Check status
-          </button>
+          <button type="submit" className="rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300">Check status</button>
         </form>
         {status && <p className="mt-3 text-xs text-emerald-300">{status}</p>}
       </section>
+
       <p className="text-center text-[11px] text-slate-600">
         1,000 points = $1.00 USD. Third-party networks control approval and completion.
       </p>
