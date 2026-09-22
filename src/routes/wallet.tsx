@@ -12,6 +12,7 @@ function WalletComponent() {
   const [points, setPoints] = useState(0);
   const [cashouts, setCashouts] = useState<Cashout[]>([]);
   const [paypalEmail, setPaypalEmail] = useState("");
+  const [method, setMethod] = useState<"paypal" | "airtime" | "data">("paypal");
   const [ptsAmount, setPtsAmount] = useState(500);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -44,7 +45,8 @@ function WalletComponent() {
 
   const handleCashout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paypalEmail.includes("@")) return;
+    if (method === "paypal" && !paypalEmail.includes("@")) return;
+    if (method !== "paypal" && paypalEmail.replace(/\D/g, "").length < 9) return;
     setLoading(true);
     setMsg(null);
 
@@ -56,6 +58,7 @@ function WalletComponent() {
           userId: accountId,
           destination: paypalEmail,
           points: ptsAmount,
+          method,
         }),
       });
 
@@ -83,7 +86,7 @@ function WalletComponent() {
       </div>
 
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-        <h2 className="text-base font-bold text-white mb-4">Cash Out to PayPal</h2>
+        <h2 className="text-base font-bold text-white mb-4">Cash Out</h2>
 
         {msg && (
           <div
@@ -99,11 +102,20 @@ function WalletComponent() {
 
         <form onSubmit={handleCashout} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">PayPal Email Address</label>
+            <label className="block text-xs text-slate-400 mb-1">Payout method</label>
+            <select value={method} onChange={(e) => setMethod(e.target.value as typeof method)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
+              <option value="paypal">PayPal</option>
+              <option value="airtime">Mobile Airtime</option>
+              <option value="data">Mobile Data</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">{method === "paypal" ? "PayPal Email Address" : "South African Mobile Number"}</label>
             <input
-              type="email"
+              type={method === "paypal" ? "email" : "tel"}
               required
-              placeholder="your-paypal@email.com"
+              placeholder={method === "paypal" ? "your-paypal@email.com" : "0821234567"}
               value={paypalEmail}
               onChange={(e) => setPaypalEmail(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
@@ -130,7 +142,7 @@ function WalletComponent() {
             disabled={loading || points < ptsAmount || ptsAmount < 500}
             className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-bold rounded-lg text-xs transition"
           >
-            {loading ? "Submitting..." : `Cash Out ${(ptsAmount / 1000).toFixed(2)} USD via PayPal`}
+            {loading ? "Submitting..." : `Cash Out ${(ptsAmount / 1000).toFixed(2)} USD via ${method === "paypal" ? "PayPal" : method === "airtime" ? "Airtime" : "Data"}`}
           </button>
         </form>
       </div>
