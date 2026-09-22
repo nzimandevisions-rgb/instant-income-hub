@@ -84,12 +84,16 @@ async function adscend(kind: FeedKind, subid: string | null): Promise<Normalized
   const profileId = env("ADSCEND_PROFILE_ID");
   if (!publisherId || !apiKey || !profileId) return [];
 
-  const base = `https://api.adscendmedia.com/v1/publisher/${publisherId}/profile/${profileId}`;
-  const path = kind === "survey" ? "surveys.json" : "offers.json";
-  const url = new URL(`${base}/${path}`);
-  if (subid) url.searchParams.set("subid1", subid);
+  let url: URL;
+  if (kind === "survey") {
+    if (!subid) return [];
+    url = new URL(`https://adscendmedia.com/market-research/api/publisher/${publisherId}/profile/${profileId}/user/${encodeURIComponent(subid)}/surveys.json`);
+  } else {
+    url = new URL(`https://api.adscendmedia.com/v1/publisher/${publisherId}/offers.json`);
+    if (subid) url.searchParams.set("sub1", subid);
+  }
 
-  const payload = await getJson(url.toString(), { Authorization: apiKey });
+  const payload = await getJson(url.toString(), { Authorization: "Basic " + btoa(`${publisherId}:${apiKey}`) });
 
   return rowsFrom(payload).map((row, i) => {
     const minutes = pickNum(row, ["loi", "length_of_interview", "minutes", "duration"]);
@@ -109,25 +113,42 @@ async function adscend(kind: FeedKind, subid: string | null): Promise<Normalized
 /* ----------------------------------- AdGem ---------------------------------- */
 
 async function adgem(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
-  if (kind !== "offer") return [];
-  const appId = env("ADGEM_APP_ID");
-  if (!appId) return [];
+  if (kind !== "offer" || !subid) return [];
+  const refreshToken = env("ADGEM_REFRESH_TOKEN");
+  if (!refreshToken) return [];
 
-  const url = new URL("https://api.adgem.com/v1/wall/json");
-  url.searchParams.set("appid", appId);
-  if (subid) url.searchParams.set("playerid", subid);
-  const apiKey = env("ADGEM_API_KEY");
+  const tokenRes = await fetch("https://prism.adgem.com/v1/users/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken }),
+  });
+  if (!tokenRes.ok) throw new Error(`AdGem token ${tokenRes.status}`);
+  const token = (await tokenRes.json()) as { access_token?: string };
+  if (!token.access_token) throw new Error("AdGem access token missing");
 
-  const payload = await getJson(url.toString(), apiKey ? { Authorization: `Bearer ${apiKey}` } : {});
+  const response = await fetch("https://prism.adgem.com/v1/offers", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token.access_token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      query: "query GetOffers(\$playerId: String!) { offers(player_id: \$playerId) { id name total_payout_usd creatives { name description short_description instructions disclaimer } links { click_url } goals { name description payout_usd } is_featured_campaign } }",
+      variables: { playerId: subid },
+    }),
+  });
+  if (!response.ok) throw new Error(`AdGem offers ${response.status}`);
+  const payload = await response.json();
 
   return rowsFrom(payload).map((row, i) => ({
-    id: pickStr(row, ["campaign_id", "id", "offer_id"]) ?? `adgem_${i}`,
+    id: pickStr(row, ["id", "campaign_id", "offer_id"]) ?? `adgem_${i}`,
     title: pickStr(row, ["name", "title", "short_name"]) ?? "Untitled offer",
-    description: pickStr(row, ["description", "instructions", "short_description"]) ?? "",
-    points: pickNum(row, ["amount", "points"]) ?? payoutToPoints(pickNum(row, ["payout", "revenue"])),
-    meta: pickStr(row, ["size", "file_size", "platform"]),
-    url: pickStr(row, ["tracking_url", "click_url", "url"]),
-    hot: Boolean(row["featured"] ?? row["is_featured"]),
+    description: pickStr(row, ["description", "short_description", "instructions"]) ?? "",
+    points: pickNum(row, ["amount", "points"]) ?? payoutToPoints(pickNum(row, ["total_payout_usd", "payout", "revenue"])),
+    meta: pickStr(row, ["tracking_type", "campaign_vertical"]),
+    url: pickStr(row, ["click_url", "tracking_url", "url"]),
+    hot: Boolean(row["is_featured_campaign"] ?? row["featured"]),
     network: "adgem",
   }));
 }
