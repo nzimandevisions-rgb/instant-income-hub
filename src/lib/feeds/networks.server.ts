@@ -233,7 +233,32 @@ async function cpalead(kind: FeedKind, subid: string | null): Promise<Normalized
     .filter((task): task is NormalizedTask => task !== null);
 }
 
-const adapters = [cpalead, adscend, adgem, digitalTurbine];
+/* --------------------------------- CPAGrip --------------------------------- */
+
+async function cpagrip(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+  if (kind !== "offer" || !subid) return [];
+
+  // CPAGrip's documented hosted offer wall is the reliable inventory surface.
+  // Pass the Syde Hustle account as tracking_id so completed offers can be
+  // credited back to the correct user through the global postback.
+  const publisherId = env("CPAGRIP_AFFILIATE_ID") ?? "2554086";
+  const wallUrl = new URL("https://www.cpagrip.com/showoffer.php");
+  wallUrl.searchParams.set("u", publisherId);
+  wallUrl.searchParams.set("tracking_id", subid);
+
+  return [{
+    id: "cpagrip_wall",
+    title: "Available Offers",
+    description: "Browse eligible tasks and offers available for your account.",
+    points: 0,
+    meta: "Offers",
+    url: wallUrl.toString(),
+    hot: true,
+    network: "rewards",
+  }];
+}
+
+const adapters = [cpalead, cpagrip, adscend, adgem, digitalTurbine];
 
 /** Runs every configured network in parallel and merges the results. */
 export async function loadFeed(kind: FeedKind, subid: string | null) {
