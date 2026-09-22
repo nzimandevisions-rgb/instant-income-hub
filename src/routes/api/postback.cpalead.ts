@@ -37,9 +37,14 @@ async function handle(request: Request, context: unknown) {
       .map((name) => url.searchParams.get(name) ?? body[name])
       .find((item) => item !== null && item !== undefined && String(item).trim() !== "");
 
-  const password = env(context, "CPALEAD_POSTBACK_PASSWORD");
-  if (!password) return new Response("Postback password is not configured", { status: 503 });
-  if (String(value(["password"]) ?? "") !== password) return new Response("Unauthorized", { status: 401 });
+  // CPAlead's postback password is optional. If we configure one later,
+  // the endpoint will enforce it; otherwise postbacks work without one.
+  const configuredPassword = env(context, "CPALEAD_POSTBACK_PASSWORD");
+  if (configuredPassword) {
+    const suppliedPassword = String(value(["password"]) ?? "");
+    if (suppliedPassword !== configuredPassword)
+      return new Response("Unauthorized", { status: 401 });
+  }
 
   const userId = String(value(["subid", "subId", "user_id"]) ?? "").trim();
   const leadId = String(value(["lead_id", "transaction_id", "trans_id"]) ?? "").trim();
