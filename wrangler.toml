@@ -1,12 +1,7 @@
 name = "instant-income-hub"
-main = "worker.js"
+main = "src/server.ts"
 compatibility_date = "2026-09-22"
 compatibility_flags = ["nodejs_compat"]
-
-[assets]
-directory = "./dist"
-binding = "ASSETS"
-run_worker_first = true
 
 [[d1_databases]]
 binding = "DB"
