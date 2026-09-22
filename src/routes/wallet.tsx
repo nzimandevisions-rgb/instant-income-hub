@@ -66,7 +66,7 @@ function WalletComponent() {
       if (!res.ok) {
         setMsg({ type: "error", text: data.error || "Failed to submit cashout." });
       } else {
-        setMsg({ type: "success", text: `Cashout submitted to ${paypalEmail}! Status: Pending.` });
+        setMsg({ type: "success", text: `Cashout submitted to ${paypalEmail}! Status: Pending. A payout provider or operator must complete the request.` });
         setPoints(data.balance);
         setCashouts(data.cashouts);
       }
@@ -149,7 +149,7 @@ function WalletComponent() {
 
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
         <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
-          PayPal Cashout History
+          Cash-out History
         </h3>
         {cashouts.length === 0 ? (
           <p className="text-xs text-slate-500">No cashouts requested yet.</p>
