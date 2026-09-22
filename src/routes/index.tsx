@@ -7,28 +7,45 @@ export const Route = createFileRoute("/")({ component: DashboardPage });
 
 function TaskCard({ task, onStart }: { task: LiveTask; onStart: (task: LiveTask) => void }) {
   return (
-    <article className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/90 p-5 sm:flex-row sm:items-center">
-      <div>
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-extrabold uppercase text-emerald-400">
-            {task.hot ? "HOT" : "LIVE"}
-          </span>
-          {task.meta && <span className="text-[11px] text-slate-500">{task.meta}</span>}
-          <span className="rounded-lg bg-slate-950 px-2.5 py-1 font-mono text-xs font-black text-emerald-400">
-            +{task.points.toLocaleString()} PTS
-          </span>
+    <article className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 transition hover:-translate-y-0.5 hover:border-emerald-500/30 hover:shadow-xl">
+      <div className="flex flex-col sm:flex-row">
+        <div className="relative h-44 w-full shrink-0 overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950 sm:h-auto sm:w-48">
+          {task.imageUrl ? (
+            <img
+              src={task.imageUrl}
+              alt=""
+              loading="lazy"
+              className="h-full min-h-36 w-full object-cover transition duration-300 group-hover:scale-105"
+              onError={(event) => { event.currentTarget.style.display = "none"; }}
+            />
+          ) : (
+            <div className="flex h-full min-h-36 items-center justify-center text-4xl">🎁</div>
+          )}
+          <div className="absolute left-3 top-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-300 backdrop-blur">
+            {task.hot ? "🔥 HOT" : "LIVE"}
+          </div>
         </div>
-        <h3 className="text-base font-bold text-white">{task.title}</h3>
-        {task.description && <p className="mt-1 text-xs text-slate-400">{task.description}</p>}
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {task.meta && <span className="rounded-md bg-slate-800 px-2 py-1 text-[10px] font-bold uppercase text-slate-400">{task.meta}</span>}
+              <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 font-mono text-xs font-black text-emerald-400">
+                +{task.points.toLocaleString()} PTS
+              </span>
+            </div>
+            <h3 className="line-clamp-2 text-base font-bold text-white">{task.title}</h3>
+            {task.description && <p className="mt-1 line-clamp-3 text-xs leading-5 text-slate-400">{task.description}</p>}
+          </div>
+          <button
+            type="button"
+            disabled={!task.url}
+            onClick={() => task.url && onStart(task)}
+            className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-slate-950 transition hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500"
+          >
+            {task.url ? "Start & Earn →" : "Unavailable"}
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        disabled={!task.url}
-        onClick={() => task.url && onStart(task)}
-        className="shrink-0 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 hover:text-slate-950 disabled:opacity-40"
-      >
-        {task.url ? "Start & Earn" : "Link unavailable"}
-      </button>
     </article>
   );
 }
