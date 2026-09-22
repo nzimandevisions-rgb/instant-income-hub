@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { useFeed, launchTask, type LiveTask } from "@/lib/feed";
+import { useFeed, type LiveTask } from "@/lib/feed";
 import { getOrCreateAccountId } from "@/lib/account";
 
 export const Route = createFileRoute("/")({ component: DashboardPage });
-function TaskCard({ task, id }: { task: LiveTask; id: string }) {
+function TaskCard({ task, id, onStart }: { task: LiveTask; id: string; onStart: (task: LiveTask) => void }) {
   return (
     <article className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/90 p-5 sm:flex-row sm:items-center">
       <div>
@@ -23,7 +23,7 @@ function TaskCard({ task, id }: { task: LiveTask; id: string }) {
       <button
         type="button"
         disabled={!task.url}
-        onClick={() => task.url && launchTask(task.url, id)}
+        onClick={() => task.url && onStart(task)}
         className="shrink-0 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 hover:text-slate-950 disabled:opacity-40"
       >
         {task.url ? "Start & Earn" : "Link unavailable"}
@@ -36,6 +36,7 @@ function DashboardPage() {
   const [tab, setTab] = useState<"all" | "offer" | "survey">("all");
   const [status, setStatus] = useState("");
   const [destination, setDestination] = useState("");
+  const [activeTask, setActiveTask] = useState<LiveTask | null>(null);
   useEffect(() => {
     setId(getOrCreateAccountId());
   }, []);
@@ -120,7 +121,7 @@ function DashboardPage() {
           ))}
         </div>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+      {activeTask?.url && (\n        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-2 sm:p-6" role="dialog" aria-modal="true" aria-label="Syde Hustle task">\n          <div className="flex h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">\n            <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">\n              <div className="min-w-0">\n                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Syde Hustle Task</p>\n                <h2 className="truncate text-sm font-bold text-white">{activeTask.title}</h2>\n              </div>\n              <button type="button" onClick={() => setActiveTask(null)} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">Close</button>\n            </div>\n            <iframe\n              title="Syde Hustle task"\n              src={activeTask.url}\n              className="min-h-0 flex-1 bg-white"\n              sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-same-origin"\n              referrerPolicy="strict-origin-when-cross-origin"\n            />\n            <div className="border-t border-slate-800 px-4 py-2 text-center text-[10px] text-slate-500">\n              Keep this Syde Hustle window open while completing the task. Rewards are credited only after a confirmed completion.\n            </div>\n          </div>\n        </div>\n      )}\n      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-bold text-white">Ready to cash out?</h2>
