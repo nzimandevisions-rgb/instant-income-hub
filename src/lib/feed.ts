@@ -11,7 +11,7 @@ export type LiveTask = {
   points: number;
   meta: string | null;
   url: string | null;
-  imageUrl: string | null;
+  imageUrl?: string | null;
   hot: boolean;
   network?: string;
 };
