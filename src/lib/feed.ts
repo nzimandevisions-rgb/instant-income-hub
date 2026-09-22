@@ -102,8 +102,15 @@ export function useFeed(kind: FeedKind, userId: string | null = null) {
 }
 export function launchTask(url: string, userId: string | null) {
   const target = new URL(url, window.location.origin);
-  if (userId)
+  if (userId) {
+    const encoded = encodeURIComponent(userId);
+    target.href = target.href
+      .replaceAll("{playerid}", encoded)
+      .replaceAll("{player_id}", encoded)
+      .replaceAll("[PLAYER_ID]", encoded)
+      .replaceAll("[SUBID]", encoded);
     for (const key of ["subid", "subid1", "subId", "playerid", "uid"])
       target.searchParams.set(key, userId);
+  }
   window.open(target.toString(), "_blank", "noopener,noreferrer");
 }
