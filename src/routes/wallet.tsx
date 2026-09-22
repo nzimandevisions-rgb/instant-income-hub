@@ -17,9 +17,9 @@ function WalletComponent() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const loadWallet = async (id: string) => {
+  const loadWallet = async () => {
     try {
-      const res = await fetch(`/api/user/balance?user=${encodeURIComponent(id)}`);
+      const res = await fetch("/api/user/balance");
       if (res.ok) {
         const data = await res.json();
         setPoints(data.points || 0);
@@ -31,15 +31,21 @@ function WalletComponent() {
   };
 
   useEffect(() => {
-    let id = localStorage.getItem("syde_hustle_account_id");
-    if (!id) {
-      id = "sh-" + Math.random().toString(36).substring(2, 9).toLowerCase();
-      localStorage.setItem("syde_hustle_account_id", id);
-    }
-    setAccountId(id);
-    loadWallet(id);
+    const startSession = async () => {
+      try {
+        const res = await fetch("/api/user/session", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok || !data.accountId) throw new Error(data.error || "Session failed");
+        localStorage.setItem("syde_hustle_account_id", data.accountId);
+        setAccountId(data.accountId);
+        await loadWallet();
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    startSession();
 
-    const timer = setInterval(() => loadWallet(id), 8000);
+    const timer = setInterval(() => loadWallet(), 8000);
     return () => clearInterval(timer);
   }, []);
 
@@ -55,7 +61,6 @@ function WalletComponent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: accountId,
           destination: paypalEmail,
           points: ptsAmount,
           method,
@@ -66,7 +71,7 @@ function WalletComponent() {
       if (!res.ok) {
         setMsg({ type: "error", text: data.error || "Failed to submit cashout." });
       } else {
-        setMsg({ type: "success", text: `Cashout submitted to ${paypalEmail}! Status: Pending. A payout provider or operator must complete the request.` });
+        setMsg({ type: "success", text: `Cashout submitted to ${paypalEmail}! PayPal payout status: Pending.` });
         setPoints(data.balance);
         setCashouts(data.cashouts);
       }
@@ -105,8 +110,7 @@ function WalletComponent() {
             <label className="block text-xs text-slate-400 mb-1">Payout method</label>
             <select value={method} onChange={(e) => setMethod(e.target.value as typeof method)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white">
               <option value="paypal">PayPal</option>
-              <option value="airtime">Mobile Airtime</option>
-              <option value="data">Mobile Data</option>
+
             </select>
           </div>
 
