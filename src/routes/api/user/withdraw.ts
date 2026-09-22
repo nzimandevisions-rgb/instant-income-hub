@@ -54,15 +54,20 @@ export const Route = createFileRoute("/api/user/withdraw")({
             return Response.json({ error: "Balance changed before the request could be reserved. Please try again." }, { status: 409 });
           }
 
-          const rows = await db
+          const cashoutRows = await db
             .prepare("SELECT id, destination AS email, created_at AS date, usd, status FROM cashouts WHERE user_id = ? ORDER BY created_at DESC LIMIT 50")
             .bind(userId)
-            .first<Record<string, unknown>>();
-          void rows;
+            .all();
 
           const updatedUser = await db.prepare("SELECT points FROM users WHERE id = ?").bind(userId).first<Record<string, unknown>>();
           const newBalance = Number(updatedUser?.points ?? 0);
-          return Response.json({ ok: true, balance: Number.isFinite(newBalance) ? newBalance : 0, cashouts: cashoutRows.results ?? [], cashoutId });
+
+          return Response.json({
+            ok: true,
+            balance: Number.isFinite(newBalance) ? newBalance : 0,
+            cashouts: cashoutRows.results ?? [],
+            cashoutId,
+          });
         } catch (error) {
           console.error("[withdraw]", error);
           return Response.json({ error: "Unable to submit the cash-out request." }, { status: 500 });
