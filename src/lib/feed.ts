@@ -11,6 +11,7 @@ export type LiveTask = {
   points: number;
   meta: string | null;
   url: string | null;
+  imageUrl: string | null;
   hot: boolean;
   network?: string;
 };
@@ -47,6 +48,7 @@ export function mapTask(row: RawTask, kind: FeedKind, index: number): LiveTask {
     points: pickNum(row, ["points", "payout_points", "reward", "amount", "payout"]) ?? 0,
     meta: kind === "survey" ? (minutes ? "about " + minutes + " min" : null) : size,
     url: pickStr(row, ["url", "link", "click_url", "tracking_url", "offer_url"]),
+    imageUrl: pickStr(row, ["image", "image_url", "imageUrl", "thumbnail", "thumbnail_url", "icon", "icon_url", "creative", "creative_url"]),
     hot: Boolean(row["hot"] ?? row["featured"] ?? row["is_hot"]),
     ...(pickStr(row, ["network", "source"])
       ? { network: pickStr(row, ["network", "source"])! }
