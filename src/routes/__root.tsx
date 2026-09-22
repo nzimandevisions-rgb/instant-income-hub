@@ -62,7 +62,7 @@ function RootComponent() {
           <Outlet />
         </main>
         <footer className="border-t border-slate-800/60 bg-slate-950 py-6 text-center text-xs text-slate-500">
-          <p>© 2026 Syde Hustle. Instant PayPal Payouts &amp; Verified Tasks.</p>
+          <p>© 2026 Syde Hustle. Verified tasks &amp; tracked rewards.</p>
         </footer>
       </div>
     </RootDocument>
