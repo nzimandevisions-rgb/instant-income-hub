@@ -89,6 +89,5 @@
     "vite": "8.1.5",
     "@cloudflare/vite-plugin": "^1.57.1",
     "wrangler": "^4.40.0"
-  },
-  "packageManager": "bun@1.2.15"
+  }
 }
