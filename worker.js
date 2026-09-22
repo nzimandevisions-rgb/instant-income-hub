@@ -83,6 +83,57 @@ export default {
       }
     }
 
+    // Cash-out rail: 1,000 PTS = $1 USD. Providers are enabled only when their secrets exist.
+    if (url.pathname === "/api/user/withdraw" && request.method === "POST") {
+      if (!DB) return Response.json({ error: "D1 database binding missing" }, { status: 500 });
+      let body; try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
+      const userId = String(body.userId || "").trim();
+      const points = Math.round(Number(body.points));
+      const method = String(body.method || "paypal").toLowerCase();
+      const destination = String(body.destination || "").trim();
+      if (!userId || !Number.isInteger(points) || points < 500 || !destination) return Response.json({ error: "Valid account, destination and at least 500 PTS are required" }, { status: 400 });
+      const amountUsd = points / 1000;
+      const reference = "payout-" + crypto.randomUUID();
+      try {
+        const debited = await DB.prepare("UPDATE users SET points = points - ? WHERE id = ? AND points >= ?").bind(points, userId, points).run();
+        if (debited.meta?.changes !== 1) return Response.json({ error: "Insufficient balance" }, { status: 400 });
+        let provider;
+        if (method === "paypal") {
+          if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) throw new Error("PayPal payout credentials are not configured");
+          const base = String(env.PAYPAL_MODE || "sandbox").toLowerCase() === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
+          const tokenRes = await fetch(base + "/v1/oauth2/token", { method: "POST", headers: { Authorization: "Basic " + btoa(env.PAYPAL_CLIENT_ID + ":" + env.PAYPAL_CLIENT_SECRET), "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=client_credentials" });
+          const token = await tokenRes.json();
+          if (!token.access_token) throw new Error("PayPal OAuth failed");
+          const payRes = await fetch(base + "/v1/payments/payouts", { method: "POST", headers: { Authorization: "Bearer " + token.access_token, "Content-Type": "application/json" }, body: JSON.stringify({ sender_batch_header: { sender_batch_id: reference, email_subject: "Your Syde Hustle payout" }, items: [{ recipient_type: "EMAIL", amount: { value: amountUsd.toFixed(2), currency: "USD" }, receiver: destination, note: "Syde Hustle earnings" }] }) });
+          provider = await payRes.json();
+          if (!payRes.ok) throw new Error(provider.message || "PayPal payout failed");
+        } else if (method === "airtime" || method === "data") {
+          if (!env.RELOADLY_CLIENT_ID || !env.RELOADLY_CLIENT_SECRET) throw new Error("Reloadly credentials are not configured");
+          const tokenRes = await fetch("https://auth.reloadly.com/oauth/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_id: env.RELOADLY_CLIENT_ID, client_secret: env.RELOADLY_CLIENT_SECRET, grant_type: "client_credentials", audience: "https://topups.reloadly.com" }) });
+          const token = await tokenRes.json();
+          if (!token.access_token) throw new Error("Reloadly OAuth failed");
+          const detect = await fetch("https://topups.reloadly.com/operators/auto-detect/phone/" + encodeURIComponent(destination) + "/countryisocode/ZA", { headers: { Authorization: "Bearer " + token.access_token, Accept: "application/com.reloadly.topups-v1+json" } });
+          const op = await detect.json();
+          if (!op.operatorId) throw new Error("Could not detect a South African mobile operator");
+          const topup = await fetch("https://topups.reloadly.com/topups", { method: "POST", headers: { Authorization: "Bearer " + token.access_token, "Content-Type": "application/com.reloadly.topups-v1+json", Accept: "application/com.reloadly.topups-v1+json" }, body: JSON.stringify({ operatorId: op.operatorId, amount: amountUsd, useLocalAmount: false, recipientPhone: { countryCode: "ZA", number: destination }, customIdentifier: reference }) });
+          provider = await topup.json();
+          if (!topup.ok) throw new Error(provider.message || "Reloadly top-up failed");
+        } else {
+          if (!env.FLUTTERWAVE_SECRET_KEY) throw new Error("Flutterwave payout credentials are not configured");
+          const detail = body.details && typeof body.details === "object" ? body.details : {};
+          const transfer = await fetch("https://api.flutterwave.com/v3/transfers", { method: "POST", headers: { Authorization: "Bearer " + env.FLUTTERWAVE_SECRET_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ account_bank: detail.bankCode || body.bankCode || method.toUpperCase(), account_number: detail.accountNumber || destination, amount: Number((amountUsd * 18.5).toFixed(2)), currency: "ZAR", narration: "Syde Hustle Payout", reference }) });
+          provider = await transfer.json();
+          if (!transfer.ok || provider.status === "failed") throw new Error(provider.message || "Flutterwave payout failed");
+        }
+        await DB.prepare("INSERT OR IGNORE INTO transactions (id,user_id,amount,txid,type) VALUES (?,?,?,?,?)").bind(reference, userId, points, reference, "withdrawal").run();
+        const balance = await DB.prepare("SELECT points FROM users WHERE id = ?").bind(userId).first();
+        return Response.json({ success: true, reference, balance: balance?.points || 0, provider });
+      } catch (error) {
+        try { await DB.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(points, userId).run(); } catch {}
+        return Response.json({ error: error instanceof Error ? error.message : "Payout failed" }, { status: 502 });
+      }
+    }
+
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return new Response("Site assets not found", { status: 404 });
   }
