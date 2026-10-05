@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase } from "@/lib/d1";
 
 const COOKIE = "syde_hustle_session";
+/** Account IDs created by src/lib/account.ts look like sh-ab12cd3. */
+const ACCOUNT_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{3,62}$/i;
 
 function getCookie(request: Request, name: string): string {
   const header = request.headers.get("Cookie") || "";
@@ -17,12 +19,22 @@ export const Route = createFileRoute("/api/user/session")({
         if (!db) return Response.json({ error: "Wallet database is unavailable." }, { status: 500 });
 
         try {
-          await db.prepare(
-            "CREATE TABLE IF NOT EXISTS user_sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, created_at TEXT NOT NULL)"
-          ).run();
+          await ensureSchema(db);
+
+          // The browser's account ID is the same subid that offer feeds and
+          // provider postbacks use, so binding the session to it keeps rewards
+          // and the cash-out balance on ONE account instead of two.
+          let requestedId = "";
+          try {
+            const body = (await request.json()) as Record<string, unknown>;
+            const candidate = String(body?.accountId ?? "").trim();
+            if (ACCOUNT_ID_PATTERN.test(candidate) && !candidate.includes("@")) requestedId = candidate;
+          } catch {
+            /* body optional */
+          }
 
           const existingToken = getCookie(request, COOKIE);
-          if (existingToken) {
+          if (existingToken && !requestedId) {
             const existing = await db.prepare(
               "SELECT user_id FROM user_sessions WHERE token = ?"
             ).bind(existingToken).first<Record<string, unknown>>();
@@ -34,7 +46,7 @@ export const Route = createFileRoute("/api/user/session")({
             }
           }
 
-          const userId = "sh-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+          const userId = requestedId || "sh-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
           const email = userId + "@user.sydehustle.com";
           await db.prepare(
             "INSERT OR IGNORE INTO users (id, email, points) VALUES (?, ?, 0)"

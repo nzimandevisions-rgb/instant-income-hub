@@ -1,23 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase, getEnv } from "@/lib/d1";
 import { createPayPalPayout } from "@/lib/paypal.server";
 
 const MIN_POINTS = 500;
 const SESSION_COOKIE = "syde_hustle_session";
 
-function getEnv(context: unknown): Record<string, unknown> {
-  const value = context && typeof context === "object" ? (context as Record<string, unknown>) : {};
-  return value.env && typeof value.env === "object" ? (value.env as Record<string, unknown>) : {};
-}
-
 function getCookie(request: Request, name: string): string {
   const header = request.headers.get("Cookie") || "";
   const item = header.split(";").map(v => v.trim()).find(v => v.startsWith(name + "="));
   return item ? decodeURIComponent(item.slice(name.length + 1)) : "";
-}
-
-async function addColumn(db: any, sql: string) {
-  try { await db.prepare(sql).run(); } catch (_) {}
 }
 
 export const Route = createFileRoute("/api/user/withdraw")({
@@ -31,9 +22,7 @@ export const Route = createFileRoute("/api/user/withdraw")({
           const token = getCookie(request, SESSION_COOKIE);
           if (!token) return Response.json({ error: "Your wallet session has expired. Refresh the wallet and try again." }, { status: 401 });
 
-          await db.prepare(
-            "CREATE TABLE IF NOT EXISTS user_sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, created_at TEXT NOT NULL)"
-          ).run();
+          await ensureSchema(db);
 
           const session = await db.prepare(
             "SELECT user_id FROM user_sessions WHERE token = ?"
@@ -54,14 +43,6 @@ export const Route = createFileRoute("/api/user/withdraw")({
           if (!Number.isInteger(points) || points < MIN_POINTS)
             return Response.json({ error: `Minimum cash-out is ${MIN_POINTS} points.` }, { status: 400 });
 
-          await db.prepare(
-            "CREATE TABLE IF NOT EXISTS cashouts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, destination TEXT NOT NULL, method TEXT NOT NULL, points INTEGER NOT NULL, usd REAL NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL)"
-          ).run();
-          await addColumn(db, "ALTER TABLE cashouts ADD COLUMN paypal_batch_id TEXT");
-          await addColumn(db, "ALTER TABLE cashouts ADD COLUMN paypal_item_id TEXT");
-          await addColumn(db, "ALTER TABLE cashouts ADD COLUMN paypal_status TEXT");
-          await addColumn(db, "ALTER TABLE cashouts ADD COLUMN error_message TEXT");
-
           const user = await db.prepare("SELECT points FROM users WHERE id = ?").bind(userId).first<Record<string, unknown>>();
           const balance = Number(user?.points ?? 0);
           if (!Number.isFinite(balance) || balance < points)
@@ -69,7 +50,7 @@ export const Route = createFileRoute("/api/user/withdraw")({
 
           const cashoutId = "co_" + crypto.randomUUID();
           const usd = Math.round((points / 1000) * 100) / 100;
-          if (usd <= 0) return Response.json({ error: "Cash-out amount is too small." }, { status: 400 });
+          if (usd < 0.01) return Response.json({ error: "Cash-out amount is too small." }, { status: 400 });
 
           const deducted = await db.prepare(
             "UPDATE users SET points = points - ? WHERE id = ? AND points >= ?"

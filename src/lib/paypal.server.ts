@@ -57,7 +57,6 @@ export async function createPayPalPayout(
         sender_item_id: cashoutId,
         amount: { currency: "USD", value: amountUsd.toFixed(2) },
         note: "Syde Hustle reward",
-        purpose: "CASHBACK",
       }],
     }),
   });
