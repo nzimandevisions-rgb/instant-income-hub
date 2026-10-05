@@ -21,21 +21,34 @@ function RootComponent() {
   const [points, setPoints] = useState(0);
   useEffect(() => {
     const id = getOrCreateAccountId();
+    let cancelled = false;
     const load = async () => {
       try {
-        const response = await fetch("/api/user/balance?user=" + encodeURIComponent(id));
+        const response = await fetch("/api/user/balance");
         if (response.ok) {
           const data = await response.json();
-          setPoints(typeof data.points === "number" ? data.points : 0);
+          if (!cancelled) setPoints(typeof data.points === "number" ? data.points : 0);
         }
       } catch {
         /* wallet retries */
       }
     };
-    load();
-    window.addEventListener("focus", load);
+    // Bind the wallet session to the browser account ID first, so the balance
+    // in the header is the same account the offer postbacks credit.
+    fetch("/api/user/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accountId: id }),
+    })
+      .catch(() => undefined)
+      .finally(() => {
+        if (cancelled) return;
+        load();
+        window.addEventListener("focus", load);
+      });
     const timer = window.setInterval(load, 10000);
     return () => {
+      cancelled = true;
       window.removeEventListener("focus", load);
       window.clearInterval(timer);
     };
@@ -55,7 +68,7 @@ function RootComponent() {
             className="rounded-xl border border-slate-800 px-3.5 py-1.5 font-mono text-sm font-bold text-emerald-400"
           >
             {points.toLocaleString()} PTS{" "}
-            <span className="text-xs text-slate-400">($ + {(points / 1000).toFixed(2)})</span>
+            <span className="text-xs text-slate-400">(${(points / 1000).toFixed(2)})</span>
           </Link>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-6 lg:p-8">
