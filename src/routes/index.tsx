@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useFeed, type LiveTask } from "@/lib/feed";
 import { getOrCreateAccountId } from "@/lib/account";
 
@@ -53,8 +53,6 @@ function TaskCard({ task, onStart }: { task: LiveTask; onStart: (task: LiveTask)
 function DashboardPage() {
   const [id, setId] = useState("");
   const [tab, setTab] = useState<"all" | "offer" | "survey">("all");
-  const [status, setStatus] = useState("");
-  const [destination, setDestination] = useState("");
   const [activeTask, setActiveTask] = useState<LiveTask | null>(null);
 
   useEffect(() => {
@@ -69,12 +67,6 @@ function DashboardPage() {
       : tab === "survey"
         ? surveys.tasks
         : [...offers.tasks, ...surveys.tasks];
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    setDestination("");
-    setStatus("Your balance refreshes automatically after a confirmed network postback. Open Wallet to request a payout.");
-  };
 
   return (
     <div className="space-y-6">
@@ -175,23 +167,15 @@ function DashboardPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-bold text-white">Ready to cash out?</h2>
-            <p className="mt-1 text-xs text-slate-400">Wallet balances refresh after confirmed completions.</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Balances refresh automatically after confirmed completions. Cash out to PayPal from
+              your wallet once you reach 500 PTS.
+            </p>
           </div>
           <Link to="/wallet" className="rounded-xl border border-emerald-500/40 px-4 py-2 text-xs font-bold text-emerald-300">
             View wallet
           </Link>
         </div>
-        <form onSubmit={submit} className="mt-4 flex gap-2">
-          <input
-            aria-label="Payout destination"
-            value={destination}
-            onChange={(event) => setDestination(event.target.value)}
-            placeholder="PayPal email (optional)"
-            className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-white"
-          />
-          <button type="submit" className="rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300">Check status</button>
-        </form>
-        {status && <p className="mt-3 text-xs text-emerald-300">{status}</p>}
       </section>
 
       <p className="text-center text-[11px] text-slate-600">
