@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback/adgem")({
   server: {
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/api/postback/adgem")({
         if (!db) return new Response("D1 database binding missing", { status: 500 });
 
         try {
+          await ensureSchema(db);
           const email = id + "@user.sydehustle.com";
           await db.prepare("INSERT OR IGNORE INTO users (id, email, points) VALUES (?, ?, 0)").bind(id, email).run();
           const transactionId = ("txn_" + id + "_" + txid).slice(0, 220);

@@ -1,18 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getEnv } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/public/feed/$kind")({
   server: {
     handlers: {
-      GET: async ({ params, request }) => {
+      GET: async ({ params, request, context }) => {
         const kind = params.kind === "survey" ? "survey" : params.kind === "offer" ? "offer" : null;
         if (!kind) return Response.json({ error: "Unknown feed" }, { status: 404 });
 
         const subidRaw = new URL(request.url).searchParams.get("subid");
         const subid = subidRaw && /^[\w-]{1,64}$/.test(subidRaw) ? subidRaw : null;
 
+        const bindings = getEnv(context);
+        const env = (name: string) => {
+          const value = bindings[name];
+          return typeof value === "string" && value.trim() ? value.trim() : null;
+        };
+
         const { loadFeed } = await import("@/lib/feeds/networks.server");
         try {
-          const { tasks, errors } = await loadFeed(kind, subid);
+          const { tasks, errors } = await loadFeed(kind, subid, env);
           if (errors.length) console.error("[feed]", kind, errors.join(" | "));
           return Response.json(
             { tasks },

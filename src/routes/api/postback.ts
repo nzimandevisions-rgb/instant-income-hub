@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback")({
   server: {
@@ -69,6 +69,7 @@ async function handlePostback(request: Request, context: unknown) {
   if (!db) return new Response("D1 database binding missing in Cloudflare", { status: 500 });
 
   try {
+    await ensureSchema(db);
     const email = id.includes("@") ? id : id + "@user.sydehustle.com";
     await db.prepare("INSERT OR IGNORE INTO users (id, email, points) VALUES (?, ?, 0)").bind(id, email).run();
     const transactionId = ("txn_" + id + "_" + txid).slice(0, 220);

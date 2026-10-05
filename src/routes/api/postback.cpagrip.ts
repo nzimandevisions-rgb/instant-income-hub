@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getDatabase } from "@/lib/d1";
+import { ensureSchema, envString, getDatabase } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback/cpagrip")({
   server: {
@@ -31,6 +31,15 @@ async function handle(request: Request, context: unknown) {
       .map((name) => url.searchParams.get(name) ?? body[name])
       .find((item) => item !== null && item !== undefined && String(item).trim() !== "");
 
+  // CPAGrip postbacks carry no signature, so without a shared key anyone who
+  // guesses the URL could credit themselves points. When the secret is
+  // configured, the CPAGrip postback URL must include &key=<secret>.
+  const configuredSecret = envString(context, "CPAGRIP_POSTBACK_SECRET");
+  if (configuredSecret) {
+    const supplied = String(value(["key", "password", "secret"]) ?? "");
+    if (supplied !== configuredSecret) return new Response("Unauthorized", { status: 401 });
+  }
+
   const userId = String(value(["tracking_id", "subid", "subId", "user_id"]) ?? "").trim();
   const offerId = String(value(["offer_id", "offerId"]) ?? "").trim();
   const payout = Number(value(["payout", "amount"]) ?? 0);
@@ -49,6 +58,7 @@ async function handle(request: Request, context: unknown) {
   if (!db) return new Response("D1 database binding missing in Cloudflare", { status: 500 });
 
   try {
+    await ensureSchema(db);
     const email = userId.includes("@") ? userId : userId + "@user.sydehustle.com";
     await db.prepare("INSERT OR IGNORE INTO users (id, email, points) VALUES (?, ?, 0)").bind(userId, email).run();
 
