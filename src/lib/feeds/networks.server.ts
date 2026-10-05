@@ -20,9 +20,13 @@ export type NormalizedTask = {
   network: string;
 };
 
-const env = (name: string) => {
-  const v = process.env[name];
-  return v && v.trim() ? v.trim() : null;
+export type EnvLookup = (name: string) => string | null;
+
+/** Fallback lookup for local development; production passes Worker bindings. */
+const defaultEnv: EnvLookup = (name: string) => {
+  const v = (globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process
+    ?.env?.[name];
+  return typeof v === "string" && v.trim() ? v.trim() : null;
 };
 
 const num = (v: unknown) => {
@@ -79,7 +83,7 @@ const payoutToPoints = (payoutUsd: number | null) =>
 
 /* ------------------------------- Adscend Media ------------------------------ */
 
-async function adscend(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+async function adscend(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
   const publisherId = env("ADSCEND_PUBLISHER_ID");
   const apiKey = env("ADSCEND_API_KEY");
   const profileId = env("ADSCEND_PROFILE_ID");
@@ -113,7 +117,7 @@ async function adscend(kind: FeedKind, subid: string | null): Promise<Normalized
 
 /* ----------------------------------- AdGem ---------------------------------- */
 
-async function adgem(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+async function adgem(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
   const refreshToken = env("ADGEM_REFRESH_TOKEN");
   if (!refreshToken) return [];
@@ -156,7 +160,7 @@ async function adgem(kind: FeedKind, subid: string | null): Promise<NormalizedTa
 
 /* ------------------------------ Digital Turbine ----------------------------- */
 
-async function digitalTurbine(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+async function digitalTurbine(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
   if (kind !== "offer") return [];
   const apiKey = env("DIGITAL_TURBINE_API_KEY");
   const propertyId = env("DIGITAL_TURBINE_PROPERTY_ID");
@@ -183,12 +187,12 @@ async function digitalTurbine(kind: FeedKind, subid: string | null): Promise<Nor
 
 /* ---------------------------------- CPAlead --------------------------------- */
 
-async function cpalead(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+async function cpalead(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
   // The publisher ID is public configuration, not a secret. Keep it overrideable
   // so the same build can be moved to a different approved publisher account.
-  const publisherId = env("CPALEAD_PUBLISHER_ID") ?? "3359608";
+  const publisherId = env("CPALEAD_PUBLISHER_ID") ?? env("CPALEAD_PUB_ID") ?? "3359608";
   const url = new URL("https://www.cpalead.com/api/offers");
   url.searchParams.set("id", publisherId);
   url.searchParams.set("country", "ZA");
@@ -236,7 +240,7 @@ async function cpalead(kind: FeedKind, subid: string | null): Promise<Normalized
 
 /* --------------------------------- CPAGrip --------------------------------- */
 
-async function cpagrip(kind: FeedKind, subid: string | null): Promise<NormalizedTask[]> {
+async function cpagrip(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
   // CPAGrip provides publisher-specific JSON/XML/CSV offer feeds from the
@@ -310,8 +314,8 @@ async function cpagrip(kind: FeedKind, subid: string | null): Promise<Normalized
 const adapters = [cpalead, cpagrip, adscend, adgem, digitalTurbine];
 
 /** Runs every configured network in parallel and merges the results. */
-export async function loadFeed(kind: FeedKind, subid: string | null) {
-  const settled = await Promise.allSettled(adapters.map((fn) => fn(kind, subid)));
+export async function loadFeed(kind: FeedKind, subid: string | null, env: EnvLookup = defaultEnv) {
+  const settled = await Promise.allSettled(adapters.map((fn) => fn(kind, subid, env)));
 
   const tasks: NormalizedTask[] = [];
   const errors: string[] = [];

@@ -8,7 +8,7 @@ export type PayoutMethod = {
 
 /** Points to USD-cents rate used across the app. 1000 pts = $1.00 */
 export const POINTS_PER_USD = 1000;
-export const MIN_WITHDRAW_POINTS = 2000;
+export const MIN_WITHDRAW_POINTS = 500;
 
 export const pointsToUsd = (points: number) => points / POINTS_PER_USD;
 
