@@ -70,3 +70,5 @@ In Google Cloud Console, add this **Authorized redirect URI** to the OAuth clien
 - Signing in with Google keeps the points already earned on that browser and lets the user cash out from any device.
 - Only Google-signed-in users can cash out, one open cash-out at a time.
 - With `PAYOUTS_MODE=manual`, open `/admin`, enter the admin key, and approve or reject each request. Rejected and failed payouts return the points.
+
+  
