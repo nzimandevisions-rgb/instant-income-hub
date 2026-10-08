@@ -82,6 +82,8 @@ export function ensureSchema(db: D1DatabaseLike): Promise<void> {
         "ALTER TABLE cashouts ADD COLUMN reviewed_at TEXT",
         "ALTER TABLE users ADD COLUMN google_sub TEXT",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub)",
+        "ALTER TABLE users ADD COLUMN referred_by TEXT",
+        "CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by)",
       ]) {
         try {
           await db.prepare(column).run();
@@ -95,4 +97,42 @@ export function ensureSchema(db: D1DatabaseLike): Promise<void> {
     });
   }
   return schemaPromise;
+}
+
+/** Share of a referred friend's earned points paid to whoever invited them. */
+export const REFERRAL_RATE = 0.1;
+
+/**
+ * Pays the referrer of `userId` a bonus for a points reward the user just
+ * earned from a completed offer. Idempotent per conversion (keyed on txid),
+ * so a repeated postback never pays twice. Never throws: a referral problem
+ * must not fail the user's own credit.
+ */
+export async function creditReferrer(
+  db: D1DatabaseLike,
+  userId: string,
+  earnedPoints: number,
+  txid: string,
+): Promise<void> {
+  try {
+    const row = await db
+      .prepare("SELECT referred_by FROM users WHERE id = ?")
+      .bind(userId)
+      .first<Record<string, unknown>>();
+    const referrer = String(row?.referred_by ?? "").trim();
+    if (!referrer || referrer === userId) return;
+    const bonus = Math.floor(earnedPoints * REFERRAL_RATE);
+    if (bonus < 1) return;
+    const refTx = ("ref_" + txid).slice(0, 160);
+    const transactionId = ("txn_" + referrer + "_" + refTx).slice(0, 220);
+    const inserted = await db
+      .prepare("INSERT OR IGNORE INTO transactions (id, user_id, amount, txid, type) VALUES (?, ?, ?, ?, ?)")
+      .bind(transactionId, referrer, bonus, refTx, "referral_bonus")
+      .run();
+    if (inserted.meta?.changes !== 0) {
+      await db.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(bonus, referrer).run();
+    }
+  } catch (error) {
+    console.error("[referral] bonus failed", error);
+  }
 }

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ensureSchema, envString, getDatabase } from "@/lib/d1";
+import { ensureSchema, envString, getDatabase, creditReferrer } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback/cpagrip")({
   server: {
@@ -80,6 +80,7 @@ async function handle(request: Request, context: unknown) {
 
     if (inserted.meta?.changes !== 0) {
       await db.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(points, userId).run();
+      await creditReferrer(db, userId, points, txid);
     }
 
     return new Response("OK");

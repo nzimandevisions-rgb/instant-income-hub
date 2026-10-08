@@ -9,6 +9,11 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Syde Hustle - Live Tasks & PayPal Cashouts" },
+      { name: "description", content: "Syde Hustle: complete simple online tasks and offers, earn points, and cash out to PayPal. 1,000 points = $1. Free to join with Google." },
+      { property: "og:title", content: "Syde Hustle - Earn from tasks, cash out to PayPal" },
+      { property: "og:description", content: "Complete simple online tasks and offers, earn points, and cash out to PayPal." },
+      { property: "og:url", content: "https://sydehustle.dpdns.org/" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

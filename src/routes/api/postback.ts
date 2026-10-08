@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ensureSchema, getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase, creditReferrer } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback")({
   server: {
@@ -77,8 +77,10 @@ async function handlePostback(request: Request, context: unknown) {
       .prepare("INSERT OR IGNORE INTO transactions (id, user_id, amount, txid, type) VALUES (?, ?, ?, ?, ?)")
       .bind(transactionId, id, computedReward, txid, "job_reward")
       .run();
-    if (inserted.meta?.changes !== 0)
+    if (inserted.meta?.changes !== 0) {
       await db.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(computedReward, id).run();
+      await creditReferrer(db, id, computedReward, txid);
+    }
     return new Response("OK");
   } catch (error) {
     console.error("[postback]", error);

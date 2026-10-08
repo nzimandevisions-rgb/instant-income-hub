@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ensureSchema, getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase, creditReferrer } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback/adgem")({
   server: {
@@ -35,8 +35,10 @@ export const Route = createFileRoute("/api/postback/adgem")({
           const inserted = await db.prepare(
             "INSERT OR IGNORE INTO transactions (id, user_id, amount, txid, type) VALUES (?, ?, ?, ?, ?)"
           ).bind(transactionId, id, reward, txid, "job_reward").run();
-          if (inserted.meta?.changes !== 0)
+          if (inserted.meta?.changes !== 0) {
             await db.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(reward, id).run();
+            await creditReferrer(db, id, reward, "adgem_" + txid);
+          }
           return new Response("OK", { status: 200 });
         } catch (error) {
           console.error("[adgem postback]", error);

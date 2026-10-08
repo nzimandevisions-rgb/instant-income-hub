@@ -31,9 +31,20 @@ export const Route = createFileRoute("/api/user/session")({
           }
 
           const userId = newAccountId();
+
+          // Referral: a new account opened from someone's invite link is
+          // linked to them. Only an existing account can be a referrer.
+          const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+          const ref = String(body.ref ?? "").trim();
+          let referredBy: string | null = null;
+          if (/^sh-[a-z0-9]{6,32}$/i.test(ref)) {
+            const referrer = await db.prepare("SELECT id FROM users WHERE id = ?").bind(ref).first<Record<string, unknown>>();
+            if (referrer?.id) referredBy = String(referrer.id);
+          }
+
           await db
-            .prepare("INSERT INTO users (id, email, points) VALUES (?, ?, 0)")
-            .bind(userId, userId + "@user.sydehustle.com")
+            .prepare("INSERT INTO users (id, email, points, referred_by) VALUES (?, ?, 0, ?)")
+            .bind(userId, userId + "@user.sydehustle.com", referredBy)
             .run();
           const token = await createSession(db, userId);
 

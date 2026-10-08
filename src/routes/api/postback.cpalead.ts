@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ensureSchema, getDatabase } from "@/lib/d1";
+import { ensureSchema, getDatabase, creditReferrer } from "@/lib/d1";
 
 export const Route = createFileRoute("/api/postback/cpalead")({
   server: {
@@ -69,8 +69,10 @@ async function handle(request: Request, context: unknown) {
       .bind(transactionId, userId, points, txid, "job_reward")
       .run();
 
-    if (inserted.meta?.changes !== 0)
+    if (inserted.meta?.changes !== 0) {
       await db.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(points, userId).run();
+      await creditReferrer(db, userId, points, txid);
+    }
 
     return new Response("OK");
   } catch (error) {

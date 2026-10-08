@@ -18,6 +18,30 @@ function WalletComponent() {
   const [ptsAmount, setPtsAmount] = useState(500);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [referralCount, setReferralCount] = useState(0);
+  const [referralPoints, setReferralPoints] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const inviteLink = accountId ? `https://sydehustle.dpdns.org/?ref=${accountId}` : "";
+
+  const shareInvite = async () => {
+    if (!inviteLink) return;
+    const text = "I'm earning PayPal cash on Syde Hustle by doing quick tasks. Join with my link: " + inviteLink;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Syde Hustle", text, url: inviteLink });
+        return;
+      }
+    } catch {
+      /* fall back to copy */
+    }
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy your invite link:", inviteLink);
+    }
+  };
 
   const loadWallet = async () => {
     try {
@@ -26,6 +50,8 @@ function WalletComponent() {
         const data = await res.json();
         setPoints(data.points || 0);
         setCashouts(data.cashouts || []);
+        setReferralCount(data.referralCount || 0);
+        setReferralPoints(data.referralPoints || 0);
       }
     } catch (e) {
       console.error(e);
@@ -190,6 +216,55 @@ function WalletComponent() {
           </button>
         </form>
         )}
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-white">Invite friends, earn 10% forever</h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Share your link. Every time a friend who joined with it completes a task, you get a bonus worth 10% of
+            what they earned. It comes from our share, so your friend still gets their full reward.
+          </p>
+        </div>
+
+        <ol className="text-xs text-slate-300 space-y-1.5 list-decimal list-inside">
+          <li>Send your link to friends on WhatsApp or anywhere you chat.</li>
+          <li>They open it and start doing tasks on Syde Hustle.</li>
+          <li>When a task is confirmed, they get their points and you get 10% on top.</li>
+        </ol>
+
+        <div className="text-[11px] text-slate-500 bg-slate-950 border border-slate-800 rounded-lg p-3">
+          Example: your friend finishes a task worth 1,000 points ($1.00). They keep all 1,000, and you get 100
+          points ($0.10). There's no bonus just for signing up, only for tasks they actually complete.
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            readOnly
+            value={inviteLink || "Loading your link..."}
+            onFocus={(e) => e.currentTarget.select()}
+            className="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] text-white font-mono"
+          />
+          <button
+            type="button"
+            onClick={shareInvite}
+            disabled={!inviteLink}
+            className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 text-slate-950 font-bold rounded-lg text-xs transition whitespace-nowrap"
+          >
+            {copied ? "Copied!" : "Share link"}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-center">
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
+            <div className="text-lg font-black text-white font-mono">{referralCount}</div>
+            <div className="text-[10px] text-slate-500">Friends joined</div>
+          </div>
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
+            <div className="text-lg font-black text-emerald-400 font-mono">{referralPoints} PTS</div>
+            <div className="text-[10px] text-slate-500">Earned from friends</div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">

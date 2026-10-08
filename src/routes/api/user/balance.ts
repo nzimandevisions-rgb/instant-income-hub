@@ -90,8 +90,19 @@ export const Route = createFileRoute("/api/user/balance")({
             .bind(id)
             .all<Record<string, unknown>>();
 
+          const referrals = await db
+            .prepare("SELECT COUNT(*) AS n FROM users WHERE referred_by = ?")
+            .bind(id)
+            .first<Record<string, unknown>>();
+          const referralEarnings = await db
+            .prepare("SELECT COALESCE(SUM(amount), 0) AS pts FROM transactions WHERE user_id = ? AND type = 'referral_bonus'")
+            .bind(id)
+            .first<Record<string, unknown>>();
+
           return Response.json({
             id,
+            referralCount: Number(referrals?.n ?? 0) || 0,
+            referralPoints: Number(referralEarnings?.pts ?? 0) || 0,
             email: String(row?.email ?? id + "@user.sydehustle.com"),
             points: Number.isFinite(points) ? points : 0,
             cashouts: cashoutRows.results ?? [],
