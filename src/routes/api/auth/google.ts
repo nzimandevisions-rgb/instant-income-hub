@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/auth/google")({
         const state = crypto.randomUUID();
         // Where to land after sign-in. Only our own pages are allowed.
         const nextRaw = new URL(request.url).searchParams.get("next") ?? "/wallet";
-        const next = nextRaw === "/" ? "/" : "/wallet";
+        const next = ["/", "/surveys"].includes(nextRaw) ? nextRaw : "/wallet";
         const params = new URLSearchParams({
           client_id: clientId,
           redirect_uri: googleRedirectUri(request, context),

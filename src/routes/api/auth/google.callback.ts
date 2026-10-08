@@ -29,7 +29,8 @@ export const Route = createFileRoute("/api/auth/google/callback")({
         const code = url.searchParams.get("code") ?? "";
         const state = url.searchParams.get("state") ?? "";
         const expectedState = getCookie(request, OAUTH_STATE_COOKIE);
-        const nextPage = getCookie(request, "syde_auth_next") === "/" ? "/" : "/wallet";
+        const nextCookie = decodeURIComponent(getCookie(request, "syde_auth_next"));
+        const nextPage = ["/", "/surveys"].includes(nextCookie) ? nextCookie : "/wallet";
         if (!code || !state || !expectedState || state !== expectedState) return back(nextPage, "error");
 
         const clientId = envString(context, "GOOGLE_CLIENT_ID");

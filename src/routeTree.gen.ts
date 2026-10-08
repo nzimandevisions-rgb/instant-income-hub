@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ApiPostbackRouteImport } from './routes/api/postback'
 import { Route as ApiAdminCashoutsRouteImport } from './routes/api/admin/cashouts'
@@ -20,7 +21,9 @@ import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiPostbackAdgemRouteImport } from './routes/api/postback.adgem'
 import { Route as ApiPostbackCpagripRouteImport } from './routes/api/postback.cpagrip'
 import { Route as ApiPostbackCpaleadRouteImport } from './routes/api/postback.cpalead'
+import { Route as ApiPostbackCpxRouteImport } from './routes/api/postback.cpx'
 import { Route as ApiUserBalanceRouteImport } from './routes/api/user/balance'
+import { Route as ApiUserCpxUrlRouteImport } from './routes/api/user/cpx-url'
 import { Route as ApiUserSessionRouteImport } from './routes/api/user/session'
 import { Route as ApiUserWithdrawRouteImport } from './routes/api/user/withdraw'
 import { Route as ApiAuthGoogleCallbackRouteImport } from './routes/api/auth/google.callback'
@@ -39,6 +42,11 @@ const AdminRoute = AdminRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SurveysRoute = SurveysRouteImport.update({
+  id: '/surveys',
+  path: '/surveys',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WalletRoute = WalletRouteImport.update({
@@ -81,9 +89,19 @@ const ApiPostbackCpaleadRoute = ApiPostbackCpaleadRouteImport.update({
   path: '/cpalead',
   getParentRoute: () => ApiPostbackRoute,
 } as any)
+const ApiPostbackCpxRoute = ApiPostbackCpxRouteImport.update({
+  id: '/cpx',
+  path: '/cpx',
+  getParentRoute: () => ApiPostbackRoute,
+} as any)
 const ApiUserBalanceRoute = ApiUserBalanceRouteImport.update({
   id: '/api/user/balance',
   path: '/api/user/balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUserCpxUrlRoute = ApiUserCpxUrlRouteImport.update({
+  id: '/api/user/cpx-url',
+  path: '/api/user/cpx-url',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUserSessionRoute = ApiUserSessionRouteImport.update({
@@ -111,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/privacy': typeof PrivacyRoute
+  '/surveys': typeof SurveysRoute
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
@@ -119,7 +138,9 @@ export interface FileRoutesByFullPath {
   '/api/postback/adgem': typeof ApiPostbackAdgemRoute
   '/api/postback/cpagrip': typeof ApiPostbackCpagripRoute
   '/api/postback/cpalead': typeof ApiPostbackCpaleadRoute
+  '/api/postback/cpx': typeof ApiPostbackCpxRoute
   '/api/user/balance': typeof ApiUserBalanceRoute
+  '/api/user/cpx-url': typeof ApiUserCpxUrlRoute
   '/api/user/session': typeof ApiUserSessionRoute
   '/api/user/withdraw': typeof ApiUserWithdrawRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
@@ -129,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/privacy': typeof PrivacyRoute
+  '/surveys': typeof SurveysRoute
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
@@ -137,7 +159,9 @@ export interface FileRoutesByTo {
   '/api/postback/adgem': typeof ApiPostbackAdgemRoute
   '/api/postback/cpagrip': typeof ApiPostbackCpagripRoute
   '/api/postback/cpalead': typeof ApiPostbackCpaleadRoute
+  '/api/postback/cpx': typeof ApiPostbackCpxRoute
   '/api/user/balance': typeof ApiUserBalanceRoute
+  '/api/user/cpx-url': typeof ApiUserCpxUrlRoute
   '/api/user/session': typeof ApiUserSessionRoute
   '/api/user/withdraw': typeof ApiUserWithdrawRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
@@ -148,6 +172,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/privacy': typeof PrivacyRoute
+  '/surveys': typeof SurveysRoute
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
@@ -156,7 +181,9 @@ export interface FileRoutesById {
   '/api/postback/adgem': typeof ApiPostbackAdgemRoute
   '/api/postback/cpagrip': typeof ApiPostbackCpagripRoute
   '/api/postback/cpalead': typeof ApiPostbackCpaleadRoute
+  '/api/postback/cpx': typeof ApiPostbackCpxRoute
   '/api/user/balance': typeof ApiUserBalanceRoute
+  '/api/user/cpx-url': typeof ApiUserCpxUrlRoute
   '/api/user/session': typeof ApiUserSessionRoute
   '/api/user/withdraw': typeof ApiUserWithdrawRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
@@ -168,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/privacy'
+    | '/surveys'
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
@@ -176,7 +204,9 @@ export interface FileRouteTypes {
     | '/api/postback/adgem'
     | '/api/postback/cpagrip'
     | '/api/postback/cpalead'
+    | '/api/postback/cpx'
     | '/api/user/balance'
+    | '/api/user/cpx-url'
     | '/api/user/session'
     | '/api/user/withdraw'
     | '/api/auth/google/callback'
@@ -186,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/privacy'
+    | '/surveys'
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
@@ -194,7 +225,9 @@ export interface FileRouteTypes {
     | '/api/postback/adgem'
     | '/api/postback/cpagrip'
     | '/api/postback/cpalead'
+    | '/api/postback/cpx'
     | '/api/user/balance'
+    | '/api/user/cpx-url'
     | '/api/user/session'
     | '/api/user/withdraw'
     | '/api/auth/google/callback'
@@ -204,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/privacy'
+    | '/surveys'
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
@@ -212,7 +246,9 @@ export interface FileRouteTypes {
     | '/api/postback/adgem'
     | '/api/postback/cpagrip'
     | '/api/postback/cpalead'
+    | '/api/postback/cpx'
     | '/api/user/balance'
+    | '/api/user/cpx-url'
     | '/api/user/session'
     | '/api/user/withdraw'
     | '/api/auth/google/callback'
@@ -223,12 +259,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   PrivacyRoute: typeof PrivacyRoute
+  SurveysRoute: typeof SurveysRoute
   WalletRoute: typeof WalletRoute
   ApiPostbackRoute: typeof ApiPostbackRouteWithChildren
   ApiAdminCashoutsRoute: typeof ApiAdminCashoutsRoute
   ApiAuthGoogleRoute: typeof ApiAuthGoogleRouteWithChildren
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiUserBalanceRoute: typeof ApiUserBalanceRoute
+  ApiUserCpxUrlRoute: typeof ApiUserCpxUrlRoute
   ApiUserSessionRoute: typeof ApiUserSessionRoute
   ApiUserWithdrawRoute: typeof ApiUserWithdrawRoute
   ApiPublicFeedKindRoute: typeof ApiPublicFeedKindRoute
@@ -255,6 +293,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/surveys': {
+      id: '/surveys'
+      path: '/surveys'
+      fullPath: '/surveys'
+      preLoaderRoute: typeof SurveysRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wallet': {
@@ -313,11 +358,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPostbackCpaleadRouteImport
       parentRoute: typeof ApiPostbackRoute
     }
+    '/api/postback/cpx': {
+      id: '/api/postback/cpx'
+      path: '/cpx'
+      fullPath: '/api/postback/cpx'
+      preLoaderRoute: typeof ApiPostbackCpxRouteImport
+      parentRoute: typeof ApiPostbackRoute
+    }
     '/api/user/balance': {
       id: '/api/user/balance'
       path: '/api/user/balance'
       fullPath: '/api/user/balance'
       preLoaderRoute: typeof ApiUserBalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/user/cpx-url': {
+      id: '/api/user/cpx-url'
+      path: '/api/user/cpx-url'
+      fullPath: '/api/user/cpx-url'
+      preLoaderRoute: typeof ApiUserCpxUrlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/user/session': {
@@ -355,12 +414,14 @@ interface ApiPostbackRouteChildren {
   ApiPostbackAdgemRoute: typeof ApiPostbackAdgemRoute
   ApiPostbackCpagripRoute: typeof ApiPostbackCpagripRoute
   ApiPostbackCpaleadRoute: typeof ApiPostbackCpaleadRoute
+  ApiPostbackCpxRoute: typeof ApiPostbackCpxRoute
 }
 
 const ApiPostbackRouteChildren: ApiPostbackRouteChildren = {
   ApiPostbackAdgemRoute: ApiPostbackAdgemRoute,
   ApiPostbackCpagripRoute: ApiPostbackCpagripRoute,
   ApiPostbackCpaleadRoute: ApiPostbackCpaleadRoute,
+  ApiPostbackCpxRoute: ApiPostbackCpxRoute,
 }
 
 const ApiPostbackRouteWithChildren = ApiPostbackRoute._addFileChildren(
@@ -383,12 +444,14 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   PrivacyRoute: PrivacyRoute,
+  SurveysRoute: SurveysRoute,
   WalletRoute: WalletRoute,
   ApiPostbackRoute: ApiPostbackRouteWithChildren,
   ApiAdminCashoutsRoute: ApiAdminCashoutsRoute,
   ApiAuthGoogleRoute: ApiAuthGoogleRouteWithChildren,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiUserBalanceRoute: ApiUserBalanceRoute,
+  ApiUserCpxUrlRoute: ApiUserCpxUrlRoute,
   ApiUserSessionRoute: ApiUserSessionRoute,
   ApiUserWithdrawRoute: ApiUserWithdrawRoute,
   ApiPublicFeedKindRoute: ApiPublicFeedKindRoute,

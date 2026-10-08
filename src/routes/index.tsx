@@ -198,6 +198,18 @@ function DashboardPage() {
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{authNote}</div>
       )}
 
+      <Link
+        to="/surveys"
+        className="flex items-center justify-between gap-4 rounded-2xl border border-sky-500/30 bg-gradient-to-r from-sky-950/60 to-slate-900 p-5 transition hover:border-sky-400/60"
+      >
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-sky-300">New · Paid surveys</p>
+          <h2 className="mt-1 font-black text-white">Earn more with surveys</h2>
+          <p className="mt-1 text-xs text-slate-400">5 to 15 minutes each, no downloads, no deposits.</p>
+        </div>
+        <span className="shrink-0 rounded-xl bg-sky-400 px-4 py-2.5 text-xs font-black text-slate-950">Open surveys →</span>
+      </Link>
+
       <TaskTracker />
 
       <section className="space-y-4">
