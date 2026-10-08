@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getOrCreateAccountId } from "@/lib/account";
+import { ensureSession, signOut } from "@/lib/account";
 
 export const Route = createFileRoute("/wallet")({
   component: WalletComponent,
@@ -10,6 +10,8 @@ type Cashout = { email: string; id: string; date: string; usd: string | number; 
 
 function WalletComponent() {
   const [accountId, setAccountId] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
   const [cashouts, setCashouts] = useState<Cashout[]>([]);
   const [paypalEmail, setPaypalEmail] = useState("");
@@ -33,17 +35,13 @@ function WalletComponent() {
   useEffect(() => {
     const startSession = async () => {
       try {
-        // Reuse the browser account ID so the wallet session points at the
-        // same user record that offer postbacks credit.
-        const accountId = getOrCreateAccountId();
-        const res = await fetch("/api/user/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.accountId) throw new Error(data.error || "Session failed");
-        setAccountId(data.accountId);
+        const session = await ensureSession();
+        setAccountId(session.accountId);
+        setSignedIn(session.signedIn);
+        setGoogleEmail(session.email);
+        const auth = new URLSearchParams(window.location.search).get("auth");
+        if (auth === "error") setMsg({ type: "error", text: "Google sign-in didn't complete. Please try again." });
+        if (auth === "ok") setMsg({ type: "success", text: "Signed in with Google. Your points are safe on this account." });
         await loadWallet();
       } catch (error) {
         console.error(error);
@@ -81,7 +79,12 @@ function WalletComponent() {
         setMsg({ type: "error", text: data.error || "Failed to submit cashout." });
         await loadWallet();
       } else {
-        setMsg({ type: "success", text: `Cash-out submitted to ${paypalEmail}. PayPal is processing your payout.` });
+        setMsg({
+          type: "success",
+          text: data.review
+            ? `Cash-out requested to ${paypalEmail}. It will be paid after a quick review.`
+            : `Cash-out submitted to ${paypalEmail}. PayPal is processing your payout.`,
+        });
         setPoints(data.balance);
         setCashouts(data.cashouts);
       }
@@ -96,6 +99,21 @@ function WalletComponent() {
     <div className="max-w-xl mx-auto space-y-6">
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-1">
         <div className="text-xs font-mono text-slate-500">ID: {accountId}</div>
+        {signedIn ? (
+          <div className="text-xs text-slate-400">
+            Signed in as {googleEmail}{" "}
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                window.location.href = "/";
+              }}
+              className="underline hover:text-white"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : null}
         <div className="text-4xl font-black text-emerald-400 font-mono">{points} PTS</div>
         <div className="text-xs text-slate-400">Available: ${(points / 1000).toFixed(2)} USD</div>
       </div>
@@ -115,6 +133,19 @@ function WalletComponent() {
           </div>
         )}
 
+        {!signedIn ? (
+          <div className="space-y-3 text-center">
+            <p className="text-xs text-slate-400">
+              Sign in with Google to cash out and keep your points safe if you change phones or clear your browser.
+            </p>
+            <a
+              href="/api/auth/google"
+              className="inline-block w-full py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-bold rounded-lg text-xs transition"
+            >
+              Continue with Google
+            </a>
+          </div>
+        ) : (
         <form onSubmit={handleCashout} className="space-y-4">
           <div>
             <label className="block text-xs text-slate-400 mb-1">Payout method</label>
@@ -158,6 +189,7 @@ function WalletComponent() {
             {loading ? "Submitting..." : `Cash Out $${(ptsAmount / 1000).toFixed(2)} USD via PayPal`}
           </button>
         </form>
+        )}
       </div>
 
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
@@ -187,7 +219,7 @@ function WalletComponent() {
                           : "bg-amber-500/10 text-amber-400"
                     }`}
                   >
-                    {c.status}
+                    {c.status.replace(/_/g, " ")}
                   </span>
                 </div>
               </div>

@@ -34,11 +34,11 @@ async function handle(request: Request, context: unknown) {
   // CPAGrip postbacks carry no signature, so without a shared key anyone who
   // guesses the URL could credit themselves points. When the secret is
   // configured, the CPAGrip postback URL must include &key=<secret>.
+  // Postbacks are refused until CPAGRIP_POSTBACK_SECRET is set.
   const configuredSecret = envString(context, "CPAGRIP_POSTBACK_SECRET");
-  if (configuredSecret) {
-    const supplied = String(value(["key", "password", "secret"]) ?? "");
-    if (supplied !== configuredSecret) return new Response("Unauthorized", { status: 401 });
-  }
+  if (!configuredSecret) return new Response("Postback secret is not configured", { status: 503 });
+  const supplied = String(value(["key", "password", "secret"]) ?? "");
+  if (supplied !== configuredSecret) return new Response("Unauthorized", { status: 401 });
 
   const userId = String(value(["tracking_id", "subid", "subId", "user_id"]) ?? "").trim();
   const offerId = String(value(["offer_id", "offerId"]) ?? "").trim();

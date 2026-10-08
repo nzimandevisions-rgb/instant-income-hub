@@ -1,16 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ensureSchema, getDatabase } from "@/lib/d1";
+import { createSession, getSessionUser, newAccountId, sessionCookie } from "@/lib/session.server";
 
-const COOKIE = "syde_hustle_session";
-/** Account IDs created by src/lib/account.ts look like sh-ab12cd3. */
-const ACCOUNT_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{3,62}$/i;
-
-function getCookie(request: Request, name: string): string {
-  const header = request.headers.get("Cookie") || "";
-  const item = header.split(";").map(v => v.trim()).find(v => v.startsWith(name + "="));
-  return item ? decodeURIComponent(item.slice(name.length + 1)) : "";
-}
-
+/**
+ * Returns the account behind the session cookie. When there is no valid
+ * session, a brand-new anonymous account is created. The server never trusts
+ * an account ID sent by the browser: that is what allowed account takeover.
+ */
 export const Route = createFileRoute("/api/user/session")({
   server: {
     handlers: {
@@ -21,50 +17,29 @@ export const Route = createFileRoute("/api/user/session")({
         try {
           await ensureSchema(db);
 
-          // The browser's account ID is the same subid that offer feeds and
-          // provider postbacks use, so binding the session to it keeps rewards
-          // and the cash-out balance on ONE account instead of two.
-          let requestedId = "";
-          try {
-            const body = (await request.json()) as Record<string, unknown>;
-            const candidate = String(body?.accountId ?? "").trim();
-            if (ACCOUNT_ID_PATTERN.test(candidate) && !candidate.includes("@")) requestedId = candidate;
-          } catch {
-            /* body optional */
+          const current = await getSessionUser(db, request);
+          if (current) {
+            return Response.json(
+              {
+                ok: true,
+                accountId: current.user.id,
+                signedIn: Boolean(current.user.googleSub),
+                email: current.user.googleSub ? current.user.email : null,
+              },
+              { headers: { "Cache-Control": "no-store" } },
+            );
           }
 
-          const existingToken = getCookie(request, COOKIE);
-          if (existingToken && !requestedId) {
-            const existing = await db.prepare(
-              "SELECT user_id FROM user_sessions WHERE token = ?"
-            ).bind(existingToken).first<Record<string, unknown>>();
-            if (existing?.user_id) {
-              return Response.json(
-                { ok: true, accountId: String(existing.user_id) },
-                { headers: { "Cache-Control": "no-store" } }
-              );
-            }
-          }
-
-          const userId = requestedId || "sh-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-          const email = userId + "@user.sydehustle.com";
-          await db.prepare(
-            "INSERT OR IGNORE INTO users (id, email, points) VALUES (?, ?, 0)"
-          ).bind(userId, email).run();
-
-          const token = crypto.randomUUID() + crypto.randomUUID();
-          await db.prepare(
-            "INSERT INTO user_sessions (token, user_id, created_at) VALUES (?, ?, ?)"
-          ).bind(token, userId, new Date().toISOString()).run();
+          const userId = newAccountId();
+          await db
+            .prepare("INSERT INTO users (id, email, points) VALUES (?, ?, 0)")
+            .bind(userId, userId + "@user.sydehustle.com")
+            .run();
+          const token = await createSession(db, userId);
 
           return Response.json(
-            { ok: true, accountId: userId },
-            {
-              headers: {
-                "Set-Cookie": COOKIE + "=" + token + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000",
-                "Cache-Control": "no-store",
-              },
-            }
+            { ok: true, accountId: userId, signedIn: false, email: null },
+            { headers: { "Set-Cookie": sessionCookie(token), "Cache-Control": "no-store" } },
           );
         } catch (error) {
           console.error("[session]", error);

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useFeed, type LiveTask } from "@/lib/feed";
-import { getOrCreateAccountId } from "@/lib/account";
+import { ensureSession } from "@/lib/account";
 
 export const Route = createFileRoute("/")({ component: DashboardPage });
 
@@ -56,7 +56,9 @@ function DashboardPage() {
   const [activeTask, setActiveTask] = useState<LiveTask | null>(null);
 
   useEffect(() => {
-    setId(getOrCreateAccountId());
+    ensureSession()
+      .then((session) => setId(session.accountId))
+      .catch(() => undefined);
   }, []);
 
   const offers = useFeed("offer", id);

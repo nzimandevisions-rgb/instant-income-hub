@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import appCss from "../styles.css?url";
-import { getOrCreateAccountId } from "@/lib/account";
+import { ensureSession } from "@/lib/account";
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -20,7 +20,6 @@ export const Route = createRootRoute({
 function RootComponent() {
   const [points, setPoints] = useState(0);
   useEffect(() => {
-    const id = getOrCreateAccountId();
     let cancelled = false;
     const load = async () => {
       try {
@@ -33,13 +32,8 @@ function RootComponent() {
         /* wallet retries */
       }
     };
-    // Bind the wallet session to the browser account ID first, so the balance
-    // in the header is the same account the offer postbacks credit.
-    fetch("/api/user/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountId: id }),
-    })
+    // The server decides which account this browser belongs to.
+    ensureSession()
       .catch(() => undefined)
       .finally(() => {
         if (cancelled) return;

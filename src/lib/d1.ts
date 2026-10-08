@@ -79,11 +79,14 @@ export function ensureSchema(db: D1DatabaseLike): Promise<void> {
         "ALTER TABLE cashouts ADD COLUMN paypal_item_id TEXT",
         "ALTER TABLE cashouts ADD COLUMN paypal_status TEXT",
         "ALTER TABLE cashouts ADD COLUMN error_message TEXT",
+        "ALTER TABLE cashouts ADD COLUMN reviewed_at TEXT",
+        "ALTER TABLE users ADD COLUMN google_sub TEXT",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub)",
       ]) {
         try {
           await db.prepare(column).run();
         } catch {
-          /* column already exists */
+          /* column or index already exists */
         }
       }
     })().catch((error) => {
