@@ -18,7 +18,49 @@ export type NormalizedTask = {
   imageUrl?: string | null;
   hot: boolean;
   network: string;
+  /** 1 = quick, 2 = medium, 3 = needs money or a lot of effort. */
+  effort?: number;
+  timeLabel?: string | null;
+  flag?: string | null;
 };
+
+/** Labels each offer honestly so people know what they are signing up for. */
+function tagOffer(task: NormalizedTask): NormalizedTask {
+  const text = `${task.meta ?? ""} ${task.title} ${task.description}`.toLowerCase();
+  let effort = 2;
+  let timeLabel: string | null = "about 5 min";
+  let flag: string | null = null;
+  if (/deposit|purchase|buy |credit card|subscribe|trial|casino|\bbet\b|betting|slots/.test(text)) {
+    effort = 3;
+    timeLabel = "about 10 min";
+    flag = /casino|\bbet\b|betting|slots/.test(text) ? "Deposit needed · 18+" : "Payment needed";
+  } else if (/email|zip|submit|enter your information/.test(text)) {
+    effort = 1;
+    timeLabel = "about 1 min";
+    flag = "Expect promo emails";
+  } else if (/install|download|app/.test(text)) {
+    effort = 2;
+    timeLabel = "about 3 min";
+    flag = "Open the app after installing";
+  } else if (/survey/.test(text)) {
+    effort = 2;
+    timeLabel = "about 10 min";
+  }
+  return { ...task, effort, timeLabel, flag };
+}
+
+/** Drops copies of the same offer that some networks list several times. */
+function dedupe(tasks: NormalizedTask[]) {
+  const seen = new Set<string>();
+  return tasks.filter((task) => {
+    const titleKey = task.title.toLowerCase().replace(/[^a-z0-9]/g, "") + "|" + task.points;
+    const imageKey = task.imageUrl ? task.imageUrl + "|" + task.points : null;
+    if (seen.has(titleKey) || (imageKey && seen.has(imageKey))) return false;
+    seen.add(titleKey);
+    if (imageKey) seen.add(imageKey);
+    return true;
+  });
+}
 
 export type EnvLookup = (name: string) => string | null;
 
@@ -324,6 +366,9 @@ export async function loadFeed(kind: FeedKind, subid: string | null, env: EnvLoo
     else errors.push(`${adapters[i]?.name ?? "network"}: ${String(r.reason)}`);
   });
 
-  tasks.sort((a, b) => b.points - a.points);
-  return { tasks, errors };
+  // Quick, no-money tasks first so new users get an early win; then by reward.
+  const ranked = dedupe(tasks.map(tagOffer)).sort(
+    (a, b) => (a.effort ?? 2) - (b.effort ?? 2) || b.points - a.points,
+  );
+  return { tasks: ranked, errors };
 }

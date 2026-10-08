@@ -99,8 +99,16 @@ export const Route = createFileRoute("/api/user/balance")({
             .bind(id)
             .first<Record<string, unknown>>();
 
+          const recent = await db
+            .prepare(
+              "SELECT txid, amount, type, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 30"
+            )
+            .bind(id)
+            .all<Record<string, unknown>>();
+
           return Response.json({
             id,
+            recentEarnings: recent.results ?? [],
             referralCount: Number(referrals?.n ?? 0) || 0,
             referralPoints: Number(referralEarnings?.pts ?? 0) || 0,
             email: String(row?.email ?? id + "@user.sydehustle.com"),

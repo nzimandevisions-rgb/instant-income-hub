@@ -12,9 +12,10 @@ import {
   googleRedirectUri,
 } from "@/lib/session.server";
 
-function back(status: "ok" | "error", cookies: string[] = []) {
-  const headers = new Headers({ Location: "/wallet?auth=" + status, "Cache-Control": "no-store" });
+function back(nextPage: string, status: "ok" | "error", cookies: string[] = []) {
+  const headers = new Headers({ Location: nextPage + "?auth=" + status, "Cache-Control": "no-store" });
   headers.append("Set-Cookie", clearCookie(OAUTH_STATE_COOKIE, "/api/auth"));
+  headers.append("Set-Cookie", clearCookie("syde_auth_next", "/api/auth"));
   for (const cookie of cookies) headers.append("Set-Cookie", cookie);
   return new Response(null, { status: 302, headers });
 }
@@ -28,12 +29,13 @@ export const Route = createFileRoute("/api/auth/google/callback")({
         const code = url.searchParams.get("code") ?? "";
         const state = url.searchParams.get("state") ?? "";
         const expectedState = getCookie(request, OAUTH_STATE_COOKIE);
-        if (!code || !state || !expectedState || state !== expectedState) return back("error");
+        const nextPage = getCookie(request, "syde_auth_next") === "/" ? "/" : "/wallet";
+        if (!code || !state || !expectedState || state !== expectedState) return back(nextPage, "error");
 
         const clientId = envString(context, "GOOGLE_CLIENT_ID");
         const clientSecret = envString(context, "GOOGLE_CLIENT_SECRET");
         const db = getDatabase(context);
-        if (!clientId || !clientSecret || !db) return back("error");
+        if (!clientId || !clientSecret || !db) return back(nextPage, "error");
 
         try {
           const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -50,7 +52,7 @@ export const Route = createFileRoute("/api/auth/google/callback")({
           const tokens = (await tokenResponse.json().catch(() => ({}))) as Record<string, unknown>;
           if (!tokenResponse.ok || typeof tokens.access_token !== "string") {
             console.error("[google] token exchange failed", tokens.error, tokens.error_description);
-            return back("error");
+            return back(nextPage, "error");
           }
 
           const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
@@ -59,7 +61,7 @@ export const Route = createFileRoute("/api/auth/google/callback")({
           const profile = (await profileResponse.json().catch(() => ({}))) as Record<string, unknown>;
           const sub = typeof profile.sub === "string" ? profile.sub : "";
           const email = typeof profile.email === "string" ? profile.email.toLowerCase() : "";
-          if (!profileResponse.ok || !sub || !email || profile.email_verified !== true) return back("error");
+          if (!profileResponse.ok || !sub || !email || profile.email_verified !== true) return back(nextPage, "error");
 
           await ensureSchema(db);
 
@@ -103,10 +105,10 @@ export const Route = createFileRoute("/api/auth/google/callback")({
             await db.prepare("DELETE FROM user_sessions WHERE token = ?").bind(current.token).run();
           }
           const token = await createSession(db, userId);
-          return back("ok", [sessionCookie(token)]);
+          return back(nextPage, "ok", [sessionCookie(token)]);
         } catch (error) {
           console.error("[google] callback failed", error);
-          return back("error");
+          return back(nextPage, "error");
         }
       },
     },

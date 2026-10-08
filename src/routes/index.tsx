@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useFeed, type LiveTask } from "@/lib/feed";
+import { useFeed, readStartedTasks, rememberStartedTask, type LiveTask, type StartedTask } from "@/lib/feed";
 import { ensureSession } from "@/lib/account";
 
 export const Route = createFileRoute("/")({ component: DashboardPage });
@@ -29,12 +29,15 @@ function TaskCard({ task, onStart }: { task: LiveTask; onStart: (task: LiveTask)
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               {task.meta && <span className="rounded-md bg-slate-800 px-2 py-1 text-[10px] font-bold uppercase text-slate-400">{task.meta}</span>}
+              {task.timeLabel && <span className="rounded-md bg-sky-500/10 px-2 py-1 text-[10px] font-bold text-sky-300">⏱ {task.timeLabel}</span>}
+              {task.effort === 1 && <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-300">Quick win</span>}
               <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 font-mono text-xs font-black text-emerald-400">
                 +{task.points.toLocaleString()} PTS
               </span>
             </div>
             <h3 className="line-clamp-2 text-base font-bold text-white">{task.title}</h3>
             {task.description && <p className="mt-1 line-clamp-3 text-xs leading-5 text-slate-400">{task.description}</p>}
+            {task.flag && <p className="mt-1.5 text-[11px] font-semibold text-amber-300/90">⚠ {task.flag}</p>}
           </div>
           <button
             type="button"
@@ -50,16 +53,120 @@ function TaskCard({ task, onStart }: { task: LiveTask; onStart: (task: LiveTask)
   );
 }
 
+type Earning = { txid: string; amount: number; type: string; created_at: string };
+
+const toTime = (value: string) => Date.parse(value.includes("T") ? value : value.replace(" ", "T") + "Z");
+
+function TaskTracker() {
+  const [started, setStarted] = useState<StartedTask[]>([]);
+  const [earnings, setEarnings] = useState<Earning[]>([]);
+  useEffect(() => {
+    const refresh = async () => {
+      setStarted(readStartedTasks());
+      try {
+        const res = await fetch("/api/user/balance");
+        if (res.ok) {
+          const data = await res.json();
+          setEarnings(Array.isArray(data.recentEarnings) ? data.recentEarnings : []);
+        }
+      } catch {
+        /* retry on next tick */
+      }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 20000);
+    window.addEventListener("syde-started-tasks", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("syde-started-tasks", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+  if (started.length === 0) return null;
+
+  // Match each started task to a task reward that arrived after it was started.
+  // An offer ID inside the reward wins; otherwise the oldest unmatched reward is used.
+  const rewards = earnings.filter((e) => e.type !== "referral_bonus");
+  const used = new Set<string>();
+  const oldestFirst = [...started].sort((a, b) => a.startedAt - b.startedAt);
+  const credited = new Map<string, number>();
+  for (const task of oldestFirst) {
+    const after = rewards.filter((e) => !used.has(e.txid) && toTime(e.created_at) >= task.startedAt - 60000);
+    const match = after.find((e) => e.txid.includes("_" + task.id + "_")) ?? after.sort((a, b) => toTime(a.created_at) - toTime(b.created_at))[0];
+    if (match) {
+      used.add(match.txid);
+      credited.set(task.id + task.startedAt, Number(match.amount) || 0);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+      <h2 className="font-bold text-white">Your tasks</h2>
+      <p className="mt-1 text-xs text-slate-400">
+        Most rewards confirm within minutes. Some networks take up to 24 hours.
+      </p>
+      <ul className="mt-3 divide-y divide-slate-800">
+        {started.slice(0, 8).map((task) => {
+          const points = credited.get(task.id + task.startedAt);
+          const hours = (Date.now() - task.startedAt) / 3600000;
+          const status =
+            points !== undefined
+              ? { text: `Credited +${points.toLocaleString()} PTS`, cls: "bg-emerald-500/15 text-emerald-300" }
+              : hours > 48
+                ? { text: "Not confirmed", cls: "bg-slate-800 text-slate-400" }
+                : { text: "Pending confirmation", cls: "bg-amber-500/15 text-amber-300" };
+          return (
+            <li key={task.id + task.startedAt} className="flex items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{task.title}</p>
+                <p className="text-[11px] text-slate-500">
+                  Started {new Date(task.startedAt).toLocaleString()} · worth {task.points.toLocaleString()} PTS
+                </p>
+              </div>
+              <span className={"shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold " + status.cls}>{status.text}</span>
+            </li>
+          );
+        })}
+      </ul>
+      {started.some((t) => !credited.has(t.id + t.startedAt) && Date.now() - t.startedAt > 48 * 3600000) && (
+        <p className="mt-2 text-[11px] text-slate-500">
+          "Not confirmed" usually means a step was skipped or the offer was already used on this device.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function DashboardPage() {
   const [id, setId] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
+  const [askSignIn, setAskSignIn] = useState(false);
+  const [authNote, setAuthNote] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "offer" | "survey">("all");
   const [activeTask, setActiveTask] = useState<LiveTask | null>(null);
 
   useEffect(() => {
     ensureSession()
-      .then((session) => setId(session.accountId))
+      .then((session) => {
+        setId(session.accountId);
+        setSignedIn(session.signedIn);
+      })
       .catch(() => undefined);
+    const auth = new URLSearchParams(window.location.search).get("auth");
+    if (auth === "ok") setAuthNote("You're signed in. Your points are saved to your Google account. Pick a task to start.");
+    if (auth === "error") setAuthNote("Google sign-in didn't finish. Please try again.");
+    if (auth) window.history.replaceState(null, "", "/");
   }, []);
+
+  const startTask = (task: LiveTask) => {
+    if (!signedIn) {
+      setAskSignIn(true);
+      return;
+    }
+    rememberStartedTask(task);
+    setActiveTask(task);
+  };
 
   const offers = useFeed("offer", id);
   const surveys = useFeed("survey", id);
@@ -86,6 +193,12 @@ function DashboardPage() {
           </p>
         </div>
       </section>
+
+      {authNote && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{authNote}</div>
+      )}
+
+      <TaskTracker />
 
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
@@ -129,10 +242,31 @@ function DashboardPage() {
 
         <div className="space-y-3">
           {tasks.map((task) => (
-            <TaskCard key={task.id + task.title} task={task} onStart={setActiveTask} />
+            <TaskCard key={task.id + task.title} task={task} onStart={startTask} />
           ))}
         </div>
       </section>
+
+      {askSignIn && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/90 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 text-center shadow-2xl">
+            <div className="text-4xl">🔒</div>
+            <h2 className="mt-3 text-lg font-black text-white">Sign in to start earning</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              Your points are saved to your Google account, so you never lose them, even if you change phones.
+            </p>
+            <a
+              href="/api/auth/google?next=/"
+              className="mt-5 block rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-emerald-400"
+            >
+              Continue with Google
+            </a>
+            <button type="button" onClick={() => setAskSignIn(false)} className="mt-3 text-xs font-semibold text-slate-500 hover:text-slate-300">
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
 
       {activeTask?.url && (
         <div
@@ -147,9 +281,19 @@ function DashboardPage() {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Syde Hustle Task</p>
                 <h2 className="truncate text-sm font-bold text-white">{activeTask.title}</h2>
               </div>
-              <button type="button" onClick={() => setActiveTask(null)} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">
-                Close
-              </button>
+              <div className="flex shrink-0 gap-2">
+                <a
+                  href={activeTask.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+                >
+                  Open in new tab
+                </a>
+                <button type="button" onClick={() => setActiveTask(null)} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">
+                  Close
+                </button>
+              </div>
             </div>
             <iframe
               title="Syde Hustle task"
@@ -159,7 +303,7 @@ function DashboardPage() {
               referrerPolicy="strict-origin-when-cross-origin"
             />
             <div className="border-t border-slate-800 px-4 py-2 text-center text-[10px] text-slate-500">
-              Complete the task in this Syde Hustle window. Rewards are credited only after a confirmed completion.
+              Page blank or stuck? Tap "Open in new tab". Your progress shows under Your tasks, and rewards are credited after the network confirms.
             </div>
           </div>
         </div>

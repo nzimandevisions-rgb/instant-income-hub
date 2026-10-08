@@ -14,7 +14,36 @@ export type LiveTask = {
   imageUrl?: string | null;
   hot: boolean;
   network?: string;
+  effort?: number;
+  timeLabel?: string | null;
+  flag?: string | null;
 };
+
+export const STARTED_TASKS_KEY = "syde_hustle_started_tasks";
+export type StartedTask = { id: string; title: string; points: number; startedAt: number };
+
+export function readStartedTasks(): StartedTask[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(STARTED_TASKS_KEY) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberStartedTask(task: LiveTask) {
+  const twoWeeks = 14 * 24 * 3600 * 1000;
+  const list = readStartedTasks()
+    .filter((t) => t.id !== task.id && Date.now() - t.startedAt < twoWeeks)
+    .slice(0, 19);
+  list.unshift({ id: task.id, title: task.title, points: task.points, startedAt: Date.now() });
+  try {
+    localStorage.setItem(STARTED_TASKS_KEY, JSON.stringify(list));
+    window.dispatchEvent(new Event("syde-started-tasks"));
+  } catch {
+    /* storage full or blocked */
+  }
+}
 type RawTask = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
 const num = (v: unknown) => {
@@ -50,6 +79,9 @@ export function mapTask(row: RawTask, kind: FeedKind, index: number): LiveTask {
     url: pickStr(row, ["url", "link", "click_url", "tracking_url", "offer_url"]),
     imageUrl: pickStr(row, ["image", "image_url", "imageUrl", "thumbnail", "thumbnail_url", "icon", "icon_url", "creative", "creative_url"]),
     hot: Boolean(row["hot"] ?? row["featured"] ?? row["is_hot"]),
+    ...(pickNum(row, ["effort"]) !== null ? { effort: pickNum(row, ["effort"])! } : {}),
+    timeLabel: pickStr(row, ["timeLabel"]),
+    flag: pickStr(row, ["flag"]),
     ...(pickStr(row, ["network", "source"])
       ? { network: pickStr(row, ["network", "source"])! }
       : {}),
