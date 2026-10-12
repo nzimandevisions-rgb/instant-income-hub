@@ -141,6 +141,11 @@ function RootComponent() {
         </main>
         <footer className="border-t border-slate-800/60 bg-slate-950 py-6 text-center text-xs text-slate-500">
           <p>© 2026 Syde Hustle. Verified tasks &amp; tracked rewards.</p>
+          <nav className="mt-2 flex justify-center gap-4">
+            <a href="/terms" className="hover:text-slate-300 underline">Terms</a>
+            <a href="/privacy" className="hover:text-slate-300 underline">Privacy</a>
+            <a href="/contact" className="hover:text-slate-300 underline">Contact</a>
+          </nav>
         </footer>
       </div>
     </RootDocument>

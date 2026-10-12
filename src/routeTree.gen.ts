@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SurveysRouteImport } from './routes/surveys'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ApiPostbackRouteImport } from './routes/api/postback'
 import { Route as ApiAdminCashoutsRouteImport } from './routes/api/admin/cashouts'
@@ -39,6 +41,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -47,6 +54,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const SurveysRoute = SurveysRouteImport.update({
   id: '/surveys',
   path: '/surveys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WalletRoute = WalletRouteImport.update({
@@ -128,8 +140,10 @@ const ApiPublicFeedKindRoute = ApiPublicFeedKindRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/contact': typeof ContactRoute
   '/privacy': typeof PrivacyRoute
   '/surveys': typeof SurveysRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
@@ -149,8 +163,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/contact': typeof ContactRoute
   '/privacy': typeof PrivacyRoute
   '/surveys': typeof SurveysRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
@@ -171,8 +187,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/contact': typeof ContactRoute
   '/privacy': typeof PrivacyRoute
   '/surveys': typeof SurveysRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
@@ -194,8 +212,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/contact'
     | '/privacy'
     | '/surveys'
+    | '/terms'
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
@@ -215,8 +235,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/contact'
     | '/privacy'
     | '/surveys'
+    | '/terms'
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
@@ -236,8 +258,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/contact'
     | '/privacy'
     | '/surveys'
+    | '/terms'
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
@@ -258,8 +282,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ContactRoute: typeof ContactRoute
   PrivacyRoute: typeof PrivacyRoute
   SurveysRoute: typeof SurveysRoute
+  TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRoute
   ApiPostbackRoute: typeof ApiPostbackRouteWithChildren
   ApiAdminCashoutsRoute: typeof ApiAdminCashoutsRoute
@@ -288,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -300,6 +333,13 @@ declare module '@tanstack/react-router' {
       path: '/surveys'
       fullPath: '/surveys'
       preLoaderRoute: typeof SurveysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wallet': {
@@ -443,8 +483,10 @@ const ApiAuthGoogleRouteWithChildren = ApiAuthGoogleRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ContactRoute: ContactRoute,
   PrivacyRoute: PrivacyRoute,
   SurveysRoute: SurveysRoute,
+  TermsRoute: TermsRoute,
   WalletRoute: WalletRoute,
   ApiPostbackRoute: ApiPostbackRouteWithChildren,
   ApiAdminCashoutsRoute: ApiAdminCashoutsRoute,
