@@ -17,13 +17,21 @@ export const Route = createFileRoute("/api/public/feed/$kind")({
           return typeof value === "string" && value.trim() ? value.trim() : null;
         };
 
-        const { loadFeed } = await import("@/lib/feeds/networks.server");
+        const { loadFeed, countryFromRequest } = await import("@/lib/feeds/networks.server");
+        const country = countryFromRequest(request);
         try {
-          const { tasks, errors } = await loadFeed(kind, subid, env);
-          if (errors.length) console.error("[feed]", kind, errors.join(" | "));
+          const { tasks, errors } = await loadFeed(kind, subid, env, country);
+          if (errors.length) console.error("[feed]", kind, country, errors.join(" | "));
           return Response.json(
             { tasks },
-            { headers: { "cache-control": "private, max-age=60" } },
+            {
+              headers: {
+                "cache-control": "private, max-age=60",
+                // Offers differ per visitor country; never reuse one country's list for another.
+                vary: "CF-IPCountry",
+                "x-offer-country": country,
+              },
+            },
           );
         } catch (err) {
           console.error("[feed] failed", err);
