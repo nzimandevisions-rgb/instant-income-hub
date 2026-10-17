@@ -64,6 +64,25 @@ function dedupe(tasks: NormalizedTask[]) {
 
 export type EnvLookup = (name: string) => string | null;
 
+/** Country used when the visitor's country is unknown. */
+export const DEFAULT_COUNTRY = "ZA";
+
+/**
+ * Normalizes a visitor country code to an uppercase ISO 3166-1 alpha-2 code.
+ * Cloudflare reports "XX" for unknown and "T1" for Tor, so both fall back.
+ */
+export function normalizeCountry(value: unknown): string {
+  const code = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (!/^[A-Z]{2}$/.test(code) || code === "XX" || code === "T1") return DEFAULT_COUNTRY;
+  return code;
+}
+
+/** Reads the visitor's country from Cloudflare (request.cf.country or CF-IPCountry). */
+export function countryFromRequest(request: Request): string {
+  const cf = (request as unknown as { cf?: { country?: unknown } }).cf;
+  return normalizeCountry(cf?.country ?? request.headers.get("cf-ipcountry"));
+}
+
 /** Fallback lookup for local development; production passes Worker bindings. */
 const defaultEnv: EnvLookup = (name: string) => {
   const v = (globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process
@@ -229,7 +248,12 @@ async function digitalTurbine(kind: FeedKind, subid: string | null, env: EnvLook
 
 /* ---------------------------------- CPAlead --------------------------------- */
 
-async function cpalead(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
+async function cpalead(
+  kind: FeedKind,
+  subid: string | null,
+  env: EnvLookup,
+  country: string = DEFAULT_COUNTRY,
+): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
   // The publisher ID is public configuration, not a secret. Keep it overrideable
@@ -237,7 +261,7 @@ async function cpalead(kind: FeedKind, subid: string | null, env: EnvLookup): Pr
   const publisherId = env("CPALEAD_PUBLISHER_ID") ?? env("CPALEAD_PUB_ID") ?? "3359608";
   const url = new URL("https://www.cpalead.com/api/offers");
   url.searchParams.set("id", publisherId);
-  url.searchParams.set("country", "ZA");
+  url.searchParams.set("country", country);
   url.searchParams.set("device", "user");
   url.searchParams.set("limit", "100");
   url.searchParams.set("subid", subid);
@@ -282,7 +306,12 @@ async function cpalead(kind: FeedKind, subid: string | null, env: EnvLookup): Pr
 
 /* --------------------------------- CPAGrip --------------------------------- */
 
-async function cpagrip(kind: FeedKind, subid: string | null, env: EnvLookup): Promise<NormalizedTask[]> {
+async function cpagrip(
+  kind: FeedKind,
+  subid: string | null,
+  env: EnvLookup,
+  country: string = DEFAULT_COUNTRY,
+): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
   // CPAGrip provides publisher-specific JSON/XML/CSV offer feeds from the
@@ -321,6 +350,13 @@ async function cpagrip(kind: FeedKind, subid: string | null, env: EnvLookup): Pr
   for (const key of ["subid", "tracking_id", "uid"]) {
     if (!url.searchParams.has(key)) url.searchParams.set(key, subid);
   }
+  // The configured feed URL carries a fixed country (CPAGrip's "country"
+  // parameter). Replace it with the visitor's country so each person sees
+  // offers they are actually eligible for.
+  for (const key of [...url.searchParams.keys()]) {
+    if (key.toLowerCase() === "country") url.searchParams.delete(key);
+  }
+  url.searchParams.set("country", country);
 
   const payload = await getJson(url.toString());
   const offers = rowsFrom(payload);
@@ -353,11 +389,26 @@ async function cpagrip(kind: FeedKind, subid: string | null, env: EnvLookup): Pr
   }).filter((task) => Boolean(task.url) && task.points > 0);
 }
 
-const adapters = [cpalead, cpagrip, adscend, adgem, digitalTurbine];
+type Adapter = (
+  kind: FeedKind,
+  subid: string | null,
+  env: EnvLookup,
+  country: string,
+) => Promise<NormalizedTask[]>;
+
+const adapters: Adapter[] = [cpalead, cpagrip, adscend, adgem, digitalTurbine];
 
 /** Runs every configured network in parallel and merges the results. */
-export async function loadFeed(kind: FeedKind, subid: string | null, env: EnvLookup = defaultEnv) {
-  const settled = await Promise.allSettled(adapters.map((fn) => fn(kind, subid, env)));
+export async function loadFeed(
+  kind: FeedKind,
+  subid: string | null,
+  env: EnvLookup = defaultEnv,
+  country: string = DEFAULT_COUNTRY,
+) {
+  const visitorCountry = normalizeCountry(country);
+  const settled = await Promise.allSettled(
+    adapters.map((fn) => fn(kind, subid, env, visitorCountry)),
+  );
 
   const tasks: NormalizedTask[] = [];
   const errors: string[] = [];
