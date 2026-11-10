@@ -6,6 +6,8 @@
  * without touching the UI.
  */
 
+import { filterCleanOffers } from "./offer-filter";
+
 export type FeedKind = "survey" | "offer";
 
 export type NormalizedTask = {
@@ -30,10 +32,14 @@ function tagOffer(task: NormalizedTask): NormalizedTask {
   let effort = 2;
   let timeLabel: string | null = "about 5 min";
   let flag: string | null = null;
-  if (/deposit|purchase|buy |credit card|subscribe|trial|casino|\bbet\b|betting|slots/.test(text)) {
+  if (/free trial|\d+-day trial|\btrial\b/.test(text) && !/deposit|purchase|credit card submit/.test(text)) {
+    effort = 3;
+    timeLabel = "about 5 min";
+    flag = "Free trial · read the terms and cancel before it renews if you don't want it";
+  } else if (/deposit|purchase|buy |credit card|subscribe|invest at least|\$\d+ invest/.test(text)) {
     effort = 3;
     timeLabel = "about 10 min";
-    flag = /casino|\bbet\b|betting|slots/.test(text) ? "Deposit needed · 18+" : "Payment needed";
+    flag = "Payment or deposit needed · read the terms";
   } else if (/email|zip|submit|enter your information/.test(text)) {
     effort = 1;
     timeLabel = "about 1 min";
@@ -322,6 +328,9 @@ async function cpagrip(
   // If the JSON feed URL has not been configured yet, keep the hosted wall
   // available as a safe fallback rather than pretending inventory exists.
   if (!feedUrl) {
+    // The hosted CPAGrip wall shows its own unfiltered list (including prize
+    // draws), so it is off unless the owner turns it on deliberately.
+    if (env("CPAGRIP_ALLOW_HOSTED_WALL") !== "1") return [];
     const publisherId = env("CPAGRIP_AFFILIATE_ID") ?? "2554086";
     const wallUrl = new URL("https://www.cpagrip.com/showoffer.php");
     wallUrl.searchParams.set("u", publisherId);
@@ -417,9 +426,13 @@ export async function loadFeed(
     else errors.push(`${adapters[i]?.name ?? "network"}: ${String(r.reason)}`);
   });
 
+  // Drop prize draws, "you won" bait, gambling, adult/dating and crypto
+  // schemes before anything reaches the browser (see offer-filter.ts).
+  const { kept, removed } = filterCleanOffers(tasks);
+
   // Quick, no-money tasks first so new users get an early win; then by reward.
-  const ranked = dedupe(tasks.map(tagOffer)).sort(
+  const ranked = dedupe(kept.map(tagOffer)).sort(
     (a, b) => (a.effort ?? 2) - (b.effort ?? 2) || b.points - a.points,
   );
-  return { tasks: ranked, errors };
+  return { tasks: ranked, errors, removed };
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useFeed, readStartedTasks, rememberStartedTask, type LiveTask, type StartedTask } from "@/lib/feed";
 import { ensureSession } from "@/lib/account";
+import { AdsHonestyNote, FirstVisitGuide } from "@/components/EarnGuide";
 
 export const Route = createFileRoute("/")({ component: DashboardPage });
 
@@ -19,7 +20,7 @@ function TaskCard({ task, onStart }: { task: LiveTask; onStart: (task: LiveTask)
               onError={(event) => { event.currentTarget.style.display = "none"; }}
             />
           ) : (
-            <div className="flex h-full min-h-36 items-center justify-center text-4xl">🎁</div>
+            <div className="flex h-full min-h-36 items-center justify-center text-4xl">📋</div>
           )}
           <div className="absolute left-3 top-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-300 backdrop-blur">
             {task.hot ? "🔥 HOT" : "LIVE"}
@@ -104,7 +105,7 @@ function TaskTracker() {
     <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
       <h2 className="font-bold text-white">Your tasks</h2>
       <p className="mt-1 text-xs text-slate-400">
-        Most rewards confirm within minutes. Some networks take up to 24 hours.
+        Most rewards confirm within minutes. Some, like reaching a game level, take a few days.
       </p>
       <ul className="mt-3 divide-y divide-slate-800">
         {started.slice(0, 8).map((task) => {
@@ -113,7 +114,7 @@ function TaskTracker() {
           const status =
             points !== undefined
               ? { text: `Credited +${points.toLocaleString()} PTS`, cls: "bg-emerald-500/15 text-emerald-300" }
-              : hours > 48
+              : hours > 120
                 ? { text: "Not confirmed", cls: "bg-slate-800 text-slate-400" }
                 : { text: "Pending confirmation", cls: "bg-amber-500/15 text-amber-300" };
           return (
@@ -129,9 +130,10 @@ function TaskTracker() {
           );
         })}
       </ul>
-      {started.some((t) => !credited.has(t.id + t.startedAt) && Date.now() - t.startedAt > 48 * 3600000) && (
+      {started.some((t) => !credited.has(t.id + t.startedAt) && Date.now() - t.startedAt > 120 * 3600000) && (
         <p className="mt-2 text-[11px] text-slate-500">
-          "Not confirmed" usually means a step was skipped or the offer was already used on this device.
+          "Not confirmed" usually means a step was skipped or the offer was already used on this device.{" "}
+          <Link to="/how-it-works" className="underline hover:text-slate-300">Tips to get credited</Link>
         </p>
       )}
     </section>
@@ -182,17 +184,44 @@ function DashboardPage() {
       <section className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-slate-900 to-emerald-950/50 p-6 sm:p-8">
         <div className="relative">
           <div className="mb-3 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
-            ● Earn points from completed tasks
+            ● Free to join · No deposits
           </div>
-          <h1 className="text-2xl font-black text-white sm:text-3xl">Complete offers. Build your balance.</h1>
-          <p className="mt-2 max-w-xl text-sm text-slate-400">
-            Complete tasks inside Syde Hustle. Your account ID is used for approved tracking and confirmed completions are credited automatically.
+          <h1 className="text-2xl font-black text-white sm:text-3xl">Get paid for surveys and quick tasks.</h1>
+          <p className="mt-2 max-w-xl text-sm text-slate-300">
+            Answer surveys or try apps, earn points, and cash out to PayPal from 500 points ($0.50). 1,000 points = $1.
           </p>
-          <p className="mt-4 font-mono text-xs text-slate-500">
-            Account ID: <span className="text-emerald-400">{id || "Creating account..."}</span>
-          </p>
+          {signedIn ? (
+            <Link
+              to="/surveys"
+              className="mt-5 inline-flex rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-emerald-400"
+            >
+              Start a survey →
+            </Link>
+          ) : (
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <a
+                href="/api/auth/google?next=/surveys"
+                className="inline-flex justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-emerald-400"
+              >
+                Sign up free with Google
+              </a>
+              <span className="text-xs text-slate-400">Takes 10 seconds. Your points stay safe on your Google account.</span>
+            </div>
+          )}
+          <ol className="mt-5 grid max-w-xl gap-2 text-xs text-slate-400 sm:grid-cols-3">
+            <li><span className="font-black text-emerald-400">1.</span> Sign in with Google</li>
+            <li><span className="font-black text-emerald-400">2.</span> Finish a survey or task</li>
+            <li><span className="font-black text-emerald-400">3.</span> Cash out to PayPal</li>
+          </ol>
+          {id && (
+            <p className="mt-4 font-mono text-[10px] text-slate-600">
+              Account ID: <span className="text-slate-500">{id}</span>
+            </p>
+          )}
         </div>
       </section>
+
+      <FirstVisitGuide variant="offers" />
 
       {authNote && (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{authNote}</div>
@@ -235,6 +264,8 @@ function DashboardPage() {
             ))}
           </div>
         </div>
+
+        <AdsHonestyNote compact />
 
         {(offers.loading || surveys.loading) && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
@@ -315,7 +346,7 @@ function DashboardPage() {
               referrerPolicy="strict-origin-when-cross-origin"
             />
             <div className="border-t border-slate-800 px-4 py-2 text-center text-[10px] text-slate-500">
-              Page blank or stuck? Tap "Open in new tab". Your progress shows under Your tasks, and rewards are credited after the network confirms.
+              Page blank or stuck? Tap "Open in new tab". Seeing "You won!" pop-ups? That's the advertiser's page, not us: close them. Rewards are credited after the network confirms.
             </div>
           </div>
         </div>
@@ -337,7 +368,8 @@ function DashboardPage() {
       </section>
 
       <p className="text-center text-[11px] text-slate-600">
-        1,000 points = $1.00 USD. Third-party networks control approval and completion.
+        1,000 points = $1.00 USD. Third-party networks control approval and completion. Earnings vary; nothing is
+        guaranteed. <Link to="/how-it-works" className="underline hover:text-slate-400">How it works</Link>
       </p>
     </div>
   );

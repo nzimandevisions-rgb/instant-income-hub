@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ensureSession } from "@/lib/account";
+import { AdsHonestyNote, FirstVisitGuide } from "@/components/EarnGuide";
 
 export const Route = createFileRoute("/surveys")({ component: SurveysPage });
 
@@ -40,6 +41,8 @@ function SurveysPage() {
         </Link>
       </div>
 
+      <FirstVisitGuide variant="surveys" />
+
       {state === "loading" && (
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">Loading surveys…</div>
       )}
@@ -60,6 +63,8 @@ function SurveysPage() {
           Surveys are unavailable right now. Please check back shortly.
         </div>
       )}
+
+      {state === "ready" && <AdsHonestyNote compact />}
 
       {state === "ready" && (
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-white">

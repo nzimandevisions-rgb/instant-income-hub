@@ -126,6 +126,12 @@ function RootComponent() {
             <span className="font-extrabold text-lg text-white">Syde Hustle</span>
           </Link>
           <div className="flex items-center gap-2">
+            <Link
+              to="/how-it-works"
+              className="rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:text-white"
+            >
+              How it works
+            </Link>
             <InstallButton />
           <Link
               to="/wallet"
@@ -142,6 +148,7 @@ function RootComponent() {
         <footer className="border-t border-slate-800/60 bg-slate-950 py-6 text-center text-xs text-slate-500">
           <p>© 2026 Syde Hustle. Verified tasks &amp; tracked rewards.</p>
           <nav className="mt-2 flex justify-center gap-4">
+            <a href="/how-it-works" className="hover:text-slate-300 underline">How it works</a>
             <a href="/terms" className="hover:text-slate-300 underline">Terms</a>
             <a href="/privacy" className="hover:text-slate-300 underline">Privacy</a>
             <a href="/contact" className="hover:text-slate-300 underline">Contact</a>

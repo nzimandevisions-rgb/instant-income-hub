@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/public/feed/$kind")({
         const { loadFeed, countryFromRequest } = await import("@/lib/feeds/networks.server");
         const country = countryFromRequest(request);
         try {
-          const { tasks, errors } = await loadFeed(kind, subid, env, country);
+          const { tasks, errors, removed } = await loadFeed(kind, subid, env, country);
           if (errors.length) console.error("[feed]", kind, country, errors.join(" | "));
           return Response.json(
             { tasks },
@@ -30,6 +30,8 @@ export const Route = createFileRoute("/api/public/feed/$kind")({
                 // Offers differ per visitor country; never reuse one country's list for another.
                 vary: "CF-IPCountry",
                 "x-offer-country": country,
+                // How many offers the clean-offer filter dropped (no titles, just a count).
+                "x-offers-filtered": String(removed.length),
               },
             },
           );
