@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRouteImport } from './routes/b5aba3d0d0f44a50a4ac7675467f4b2e[.]txt'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -43,6 +44,12 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute =
+  B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRouteImport.update({
+    id: '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt',
+    path: '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -152,6 +159,7 @@ const ApiPublicFeedKindRoute = ApiPublicFeedKindRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
   '/privacy': typeof PrivacyRoute
@@ -177,6 +185,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
   '/privacy': typeof PrivacyRoute
@@ -203,6 +212,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
   '/privacy': typeof PrivacyRoute
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
     | '/contact'
     | '/how-it-works'
     | '/privacy'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
     | '/contact'
     | '/how-it-works'
     | '/privacy'
@@ -280,6 +292,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
     | '/contact'
     | '/how-it-works'
     | '/privacy'
@@ -306,6 +319,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute: typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   ContactRoute: typeof ContactRoute
   HowItWorksRoute: typeof HowItWorksRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -338,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': {
+      id: '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
+      path: '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
+      fullPath: '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
+      preLoaderRoute: typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -523,6 +544,8 @@ const ApiAuthGoogleRouteWithChildren = ApiAuthGoogleRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute:
+    B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute,
   ContactRoute: ContactRoute,
   HowItWorksRoute: HowItWorksRoute,
   PrivacyRoute: PrivacyRoute,
