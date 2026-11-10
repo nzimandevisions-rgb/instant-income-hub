@@ -4,7 +4,7 @@ function envValue(env: PayPalEnv, key: string): string {
   return typeof env[key] === "string" ? String(env[key]).trim() : "";
 }
 
-async function getAccessToken(env: PayPalEnv): Promise<string> {
+export async function getAccessToken(env: PayPalEnv): Promise<string> {
   const clientId = envValue(env, "PAYPAL_CLIENT_ID");
   const clientSecret = envValue(env, "PAYPAL_CLIENT_SECRET");
   const environment = envValue(env, "PAYPAL_ENVIRONMENT").toLowerCase() || "live";

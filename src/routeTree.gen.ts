@@ -19,6 +19,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ApiPostbackRouteImport } from './routes/api/postback'
 import { Route as ApiAdminCashoutsRouteImport } from './routes/api/admin/cashouts'
+import { Route as ApiAdminPaypalHealthRouteImport } from './routes/api/admin/paypal-health'
 import { Route as ApiAuthGoogleRouteImport } from './routes/api/auth/google'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiPostbackAdgemRouteImport } from './routes/api/postback.adgem'
@@ -80,6 +81,11 @@ const ApiPostbackRoute = ApiPostbackRouteImport.update({
 const ApiAdminCashoutsRoute = ApiAdminCashoutsRouteImport.update({
   id: '/api/admin/cashouts',
   path: '/api/admin/cashouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPaypalHealthRoute = ApiAdminPaypalHealthRouteImport.update({
+  id: '/api/admin/paypal-health',
+  path: '/api/admin/paypal-health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthGoogleRoute = ApiAuthGoogleRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
+  '/api/admin/paypal-health': typeof ApiAdminPaypalHealthRoute
   '/api/auth/google': typeof ApiAuthGoogleRouteWithChildren
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/postback/adgem': typeof ApiPostbackAdgemRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
+  '/api/admin/paypal-health': typeof ApiAdminPaypalHealthRoute
   '/api/auth/google': typeof ApiAuthGoogleRouteWithChildren
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/postback/adgem': typeof ApiPostbackAdgemRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/wallet': typeof WalletRoute
   '/api/postback': typeof ApiPostbackRouteWithChildren
   '/api/admin/cashouts': typeof ApiAdminCashoutsRoute
+  '/api/admin/paypal-health': typeof ApiAdminPaypalHealthRoute
   '/api/auth/google': typeof ApiAuthGoogleRouteWithChildren
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/postback/adgem': typeof ApiPostbackAdgemRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
+    | '/api/admin/paypal-health'
     | '/api/auth/google'
     | '/api/auth/logout'
     | '/api/postback/adgem'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
+    | '/api/admin/paypal-health'
     | '/api/auth/google'
     | '/api/auth/logout'
     | '/api/postback/adgem'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/postback'
     | '/api/admin/cashouts'
+    | '/api/admin/paypal-health'
     | '/api/auth/google'
     | '/api/auth/logout'
     | '/api/postback/adgem'
@@ -302,6 +314,7 @@ export interface RootRouteChildren {
   WalletRoute: typeof WalletRoute
   ApiPostbackRoute: typeof ApiPostbackRouteWithChildren
   ApiAdminCashoutsRoute: typeof ApiAdminCashoutsRoute
+  ApiAdminPaypalHealthRoute: typeof ApiAdminPaypalHealthRoute
   ApiAuthGoogleRoute: typeof ApiAuthGoogleRouteWithChildren
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiUserBalanceRoute: typeof ApiUserBalanceRoute
@@ -381,6 +394,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/cashouts'
       fullPath: '/api/admin/cashouts'
       preLoaderRoute: typeof ApiAdminCashoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/paypal-health': {
+      id: '/api/admin/paypal-health'
+      path: '/api/admin/paypal-health'
+      fullPath: '/api/admin/paypal-health'
+      preLoaderRoute: typeof ApiAdminPaypalHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/google': {
@@ -511,6 +531,7 @@ const rootRouteChildren: RootRouteChildren = {
   WalletRoute: WalletRoute,
   ApiPostbackRoute: ApiPostbackRouteWithChildren,
   ApiAdminCashoutsRoute: ApiAdminCashoutsRoute,
+  ApiAdminPaypalHealthRoute: ApiAdminPaypalHealthRoute,
   ApiAuthGoogleRoute: ApiAuthGoogleRouteWithChildren,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiUserBalanceRoute: ApiUserBalanceRoute,
