@@ -14,6 +14,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRouteImport } from './routes/b5aba3d0d0f44a50a4ac7675467f4b2e[.]txt'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as PaidSurveysSouthAfricaRouteImport } from './routes/paid-surveys-south-africa'
+import { Route as PaypalCashOutSouthAfricaRouteImport } from './routes/paypal-cash-out-south-africa'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SurveysRouteImport } from './routes/surveys'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -60,6 +62,17 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
   path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaidSurveysSouthAfricaRoute = PaidSurveysSouthAfricaRouteImport.update({
+  id: '/paid-surveys-south-africa',
+  path: '/paid-surveys-south-africa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaypalCashOutSouthAfricaRoute =
+  PaypalCashOutSouthAfricaRouteImport.update({
+    id: '/paypal-cash-out-south-africa',
+    path: '/paypal-cash-out-south-africa',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -162,6 +175,8 @@ export interface FileRoutesByFullPath {
   '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/paid-surveys-south-africa': typeof PaidSurveysSouthAfricaRoute
+  '/paypal-cash-out-south-africa': typeof PaypalCashOutSouthAfricaRoute
   '/privacy': typeof PrivacyRoute
   '/surveys': typeof SurveysRoute
   '/terms': typeof TermsRoute
@@ -188,6 +203,8 @@ export interface FileRoutesByTo {
   '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/paid-surveys-south-africa': typeof PaidSurveysSouthAfricaRoute
+  '/paypal-cash-out-south-africa': typeof PaypalCashOutSouthAfricaRoute
   '/privacy': typeof PrivacyRoute
   '/surveys': typeof SurveysRoute
   '/terms': typeof TermsRoute
@@ -215,6 +232,8 @@ export interface FileRoutesById {
   '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt': typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/paid-surveys-south-africa': typeof PaidSurveysSouthAfricaRoute
+  '/paypal-cash-out-south-africa': typeof PaypalCashOutSouthAfricaRoute
   '/privacy': typeof PrivacyRoute
   '/surveys': typeof SurveysRoute
   '/terms': typeof TermsRoute
@@ -243,6 +262,8 @@ export interface FileRouteTypes {
     | '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
     | '/contact'
     | '/how-it-works'
+    | '/paid-surveys-south-africa'
+    | '/paypal-cash-out-south-africa'
     | '/privacy'
     | '/surveys'
     | '/terms'
@@ -269,6 +290,8 @@ export interface FileRouteTypes {
     | '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
     | '/contact'
     | '/how-it-works'
+    | '/paid-surveys-south-africa'
+    | '/paypal-cash-out-south-africa'
     | '/privacy'
     | '/surveys'
     | '/terms'
@@ -295,6 +318,8 @@ export interface FileRouteTypes {
     | '/b5aba3d0d0f44a50a4ac7675467f4b2e.txt'
     | '/contact'
     | '/how-it-works'
+    | '/paid-surveys-south-africa'
+    | '/paypal-cash-out-south-africa'
     | '/privacy'
     | '/surveys'
     | '/terms'
@@ -322,6 +347,8 @@ export interface RootRouteChildren {
   B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute: typeof B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute
   ContactRoute: typeof ContactRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  PaidSurveysSouthAfricaRoute: typeof PaidSurveysSouthAfricaRoute
+  PaypalCashOutSouthAfricaRoute: typeof PaypalCashOutSouthAfricaRoute
   PrivacyRoute: typeof PrivacyRoute
   SurveysRoute: typeof SurveysRoute
   TermsRoute: typeof TermsRoute
@@ -373,6 +400,20 @@ declare module '@tanstack/react-router' {
       path: '/how-it-works'
       fullPath: '/how-it-works'
       preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paid-surveys-south-africa': {
+      id: '/paid-surveys-south-africa'
+      path: '/paid-surveys-south-africa'
+      fullPath: '/paid-surveys-south-africa'
+      preLoaderRoute: typeof PaidSurveysSouthAfricaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paypal-cash-out-south-africa': {
+      id: '/paypal-cash-out-south-africa'
+      path: '/paypal-cash-out-south-africa'
+      fullPath: '/paypal-cash-out-south-africa'
+      preLoaderRoute: typeof PaypalCashOutSouthAfricaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -548,6 +589,8 @@ const rootRouteChildren: RootRouteChildren = {
     B5aba3d0d0f44a50a4ac7675467f4b2eDottxtRoute,
   ContactRoute: ContactRoute,
   HowItWorksRoute: HowItWorksRoute,
+  PaidSurveysSouthAfricaRoute: PaidSurveysSouthAfricaRoute,
+  PaypalCashOutSouthAfricaRoute: PaypalCashOutSouthAfricaRoute,
   PrivacyRoute: PrivacyRoute,
   SurveysRoute: SurveysRoute,
   TermsRoute: TermsRoute,
