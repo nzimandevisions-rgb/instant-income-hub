@@ -29,9 +29,11 @@ import { Route as ApiPostbackAdgemRouteImport } from './routes/api/postback.adge
 import { Route as ApiPostbackCpagripRouteImport } from './routes/api/postback.cpagrip'
 import { Route as ApiPostbackCpaleadRouteImport } from './routes/api/postback.cpalead'
 import { Route as ApiPostbackCpxRouteImport } from './routes/api/postback.cpx'
+import { Route as ApiPostbackTheoremreachRouteImport } from './routes/api/postback.theoremreach'
 import { Route as ApiUserBalanceRouteImport } from './routes/api/user/balance'
 import { Route as ApiUserCpxUrlRouteImport } from './routes/api/user/cpx-url'
 import { Route as ApiUserSessionRouteImport } from './routes/api/user/session'
+import { Route as ApiUserTheoremreachUrlRouteImport } from './routes/api/user/theoremreach-url'
 import { Route as ApiUserWithdrawRouteImport } from './routes/api/user/withdraw'
 import { Route as ApiAuthGoogleCallbackRouteImport } from './routes/api/auth/google.callback'
 import { Route as ApiPublicFeedKindRouteImport } from './routes/api/public/feed.$kind'
@@ -138,6 +140,11 @@ const ApiPostbackCpxRoute = ApiPostbackCpxRouteImport.update({
   path: '/cpx',
   getParentRoute: () => ApiPostbackRoute,
 } as any)
+const ApiPostbackTheoremreachRoute = ApiPostbackTheoremreachRouteImport.update({
+  id: '/theoremreach',
+  path: '/theoremreach',
+  getParentRoute: () => ApiPostbackRoute,
+} as any)
 const ApiUserBalanceRoute = ApiUserBalanceRouteImport.update({
   id: '/api/user/balance',
   path: '/api/user/balance',
@@ -151,6 +158,11 @@ const ApiUserCpxUrlRoute = ApiUserCpxUrlRouteImport.update({
 const ApiUserSessionRoute = ApiUserSessionRouteImport.update({
   id: '/api/user/session',
   path: '/api/user/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUserTheoremreachUrlRoute = ApiUserTheoremreachUrlRouteImport.update({
+  id: '/api/user/theoremreach-url',
+  path: '/api/user/theoremreach-url',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUserWithdrawRoute = ApiUserWithdrawRouteImport.update({
@@ -190,9 +202,11 @@ export interface FileRoutesByFullPath {
   '/api/postback/cpagrip': typeof ApiPostbackCpagripRoute
   '/api/postback/cpalead': typeof ApiPostbackCpaleadRoute
   '/api/postback/cpx': typeof ApiPostbackCpxRoute
+  '/api/postback/theoremreach': typeof ApiPostbackTheoremreachRoute
   '/api/user/balance': typeof ApiUserBalanceRoute
   '/api/user/cpx-url': typeof ApiUserCpxUrlRoute
   '/api/user/session': typeof ApiUserSessionRoute
+  '/api/user/theoremreach-url': typeof ApiUserTheoremreachUrlRoute
   '/api/user/withdraw': typeof ApiUserWithdrawRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
   '/api/public/feed/$kind': typeof ApiPublicFeedKindRoute
@@ -218,9 +232,11 @@ export interface FileRoutesByTo {
   '/api/postback/cpagrip': typeof ApiPostbackCpagripRoute
   '/api/postback/cpalead': typeof ApiPostbackCpaleadRoute
   '/api/postback/cpx': typeof ApiPostbackCpxRoute
+  '/api/postback/theoremreach': typeof ApiPostbackTheoremreachRoute
   '/api/user/balance': typeof ApiUserBalanceRoute
   '/api/user/cpx-url': typeof ApiUserCpxUrlRoute
   '/api/user/session': typeof ApiUserSessionRoute
+  '/api/user/theoremreach-url': typeof ApiUserTheoremreachUrlRoute
   '/api/user/withdraw': typeof ApiUserWithdrawRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
   '/api/public/feed/$kind': typeof ApiPublicFeedKindRoute
@@ -247,9 +263,11 @@ export interface FileRoutesById {
   '/api/postback/cpagrip': typeof ApiPostbackCpagripRoute
   '/api/postback/cpalead': typeof ApiPostbackCpaleadRoute
   '/api/postback/cpx': typeof ApiPostbackCpxRoute
+  '/api/postback/theoremreach': typeof ApiPostbackTheoremreachRoute
   '/api/user/balance': typeof ApiUserBalanceRoute
   '/api/user/cpx-url': typeof ApiUserCpxUrlRoute
   '/api/user/session': typeof ApiUserSessionRoute
+  '/api/user/theoremreach-url': typeof ApiUserTheoremreachUrlRoute
   '/api/user/withdraw': typeof ApiUserWithdrawRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
   '/api/public/feed/$kind': typeof ApiPublicFeedKindRoute
@@ -277,9 +295,11 @@ export interface FileRouteTypes {
     | '/api/postback/cpagrip'
     | '/api/postback/cpalead'
     | '/api/postback/cpx'
+    | '/api/postback/theoremreach'
     | '/api/user/balance'
     | '/api/user/cpx-url'
     | '/api/user/session'
+    | '/api/user/theoremreach-url'
     | '/api/user/withdraw'
     | '/api/auth/google/callback'
     | '/api/public/feed/$kind'
@@ -305,9 +325,11 @@ export interface FileRouteTypes {
     | '/api/postback/cpagrip'
     | '/api/postback/cpalead'
     | '/api/postback/cpx'
+    | '/api/postback/theoremreach'
     | '/api/user/balance'
     | '/api/user/cpx-url'
     | '/api/user/session'
+    | '/api/user/theoremreach-url'
     | '/api/user/withdraw'
     | '/api/auth/google/callback'
     | '/api/public/feed/$kind'
@@ -333,9 +355,11 @@ export interface FileRouteTypes {
     | '/api/postback/cpagrip'
     | '/api/postback/cpalead'
     | '/api/postback/cpx'
+    | '/api/postback/theoremreach'
     | '/api/user/balance'
     | '/api/user/cpx-url'
     | '/api/user/session'
+    | '/api/user/theoremreach-url'
     | '/api/user/withdraw'
     | '/api/auth/google/callback'
     | '/api/public/feed/$kind'
@@ -361,6 +385,7 @@ export interface RootRouteChildren {
   ApiUserBalanceRoute: typeof ApiUserBalanceRoute
   ApiUserCpxUrlRoute: typeof ApiUserCpxUrlRoute
   ApiUserSessionRoute: typeof ApiUserSessionRoute
+  ApiUserTheoremreachUrlRoute: typeof ApiUserTheoremreachUrlRoute
   ApiUserWithdrawRoute: typeof ApiUserWithdrawRoute
   ApiPublicFeedKindRoute: typeof ApiPublicFeedKindRoute
 }
@@ -507,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPostbackCpxRouteImport
       parentRoute: typeof ApiPostbackRoute
     }
+    '/api/postback/theoremreach': {
+      id: '/api/postback/theoremreach'
+      path: '/theoremreach'
+      fullPath: '/api/postback/theoremreach'
+      preLoaderRoute: typeof ApiPostbackTheoremreachRouteImport
+      parentRoute: typeof ApiPostbackRoute
+    }
     '/api/user/balance': {
       id: '/api/user/balance'
       path: '/api/user/balance'
@@ -526,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/api/user/session'
       fullPath: '/api/user/session'
       preLoaderRoute: typeof ApiUserSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/user/theoremreach-url': {
+      id: '/api/user/theoremreach-url'
+      path: '/api/user/theoremreach-url'
+      fullPath: '/api/user/theoremreach-url'
+      preLoaderRoute: typeof ApiUserTheoremreachUrlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/user/withdraw': {
@@ -557,6 +596,7 @@ interface ApiPostbackRouteChildren {
   ApiPostbackCpagripRoute: typeof ApiPostbackCpagripRoute
   ApiPostbackCpaleadRoute: typeof ApiPostbackCpaleadRoute
   ApiPostbackCpxRoute: typeof ApiPostbackCpxRoute
+  ApiPostbackTheoremreachRoute: typeof ApiPostbackTheoremreachRoute
 }
 
 const ApiPostbackRouteChildren: ApiPostbackRouteChildren = {
@@ -564,6 +604,7 @@ const ApiPostbackRouteChildren: ApiPostbackRouteChildren = {
   ApiPostbackCpagripRoute: ApiPostbackCpagripRoute,
   ApiPostbackCpaleadRoute: ApiPostbackCpaleadRoute,
   ApiPostbackCpxRoute: ApiPostbackCpxRoute,
+  ApiPostbackTheoremreachRoute: ApiPostbackTheoremreachRoute,
 }
 
 const ApiPostbackRouteWithChildren = ApiPostbackRoute._addFileChildren(
@@ -603,6 +644,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUserBalanceRoute: ApiUserBalanceRoute,
   ApiUserCpxUrlRoute: ApiUserCpxUrlRoute,
   ApiUserSessionRoute: ApiUserSessionRoute,
+  ApiUserTheoremreachUrlRoute: ApiUserTheoremreachUrlRoute,
   ApiUserWithdrawRoute: ApiUserWithdrawRoute,
   ApiPublicFeedKindRoute: ApiPublicFeedKindRoute,
 }
