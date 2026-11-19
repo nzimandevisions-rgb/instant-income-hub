@@ -274,9 +274,23 @@ function DashboardPage() {
         )}
 
         {!(offers.loading || surveys.loading) && tasks.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-6 text-center text-sm text-slate-400">
-            No eligible tasks are available right now. New tasks will appear automatically when an approved feed has eligible inventory.
-          </div>
+          !signedIn ? (
+            <div className="rounded-2xl border border-emerald-700/50 bg-slate-900/50 p-6 text-center text-sm text-slate-300">
+              <p className="font-bold text-white">Sign in to see today's paid tasks</p>
+              <p className="mt-1 text-slate-400">Tasks are matched to your account so your points are tracked.</p>
+              <button
+                type="button"
+                onClick={() => setAskSignIn(true)}
+                className="mt-4 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-emerald-400"
+              >
+                Continue with Google
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-6 text-center text-sm text-slate-400">
+              No eligible tasks are available right now. New tasks will appear automatically when an approved feed has eligible inventory.
+            </div>
+          )
         )}
 
         {(offers.error || surveys.error) && (
