@@ -83,6 +83,16 @@ export function normalizeCountry(value: unknown): string {
   return code;
 }
 
+/** Visitor device class, sent to networks so phones get phone offers. */
+export type VisitorDevice = "mobile" | "desktop";
+
+/** Reads the visitor's device from their browser's User-Agent. Unknown counts as mobile. */
+export function deviceFromRequest(request: Request): VisitorDevice {
+  const ua = request.headers.get("user-agent") ?? "";
+  if (!ua) return "mobile";
+  return /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(ua) ? "mobile" : "desktop";
+}
+
 /** Reads the visitor's country from Cloudflare (request.cf.country or CF-IPCountry). */
 export function countryFromRequest(request: Request): string {
   const cf = (request as unknown as { cf?: { country?: unknown } }).cf;
@@ -259,6 +269,7 @@ async function cpalead(
   subid: string | null,
   env: EnvLookup,
   country: string = DEFAULT_COUNTRY,
+  device: VisitorDevice = "mobile",
 ): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
@@ -268,7 +279,8 @@ async function cpalead(
   const url = new URL("https://www.cpalead.com/api/offers");
   url.searchParams.set("id", publisherId);
   url.searchParams.set("country", country);
-  url.searchParams.set("device", "user");
+  // "user" made CPAlead read OUR server's device (desktop), not the visitor's.
+  url.searchParams.set("device", device);
   url.searchParams.set("limit", "100");
   url.searchParams.set("subid", subid);
   url.searchParams.set(
@@ -403,6 +415,7 @@ type Adapter = (
   subid: string | null,
   env: EnvLookup,
   country: string,
+  device: VisitorDevice,
 ) => Promise<NormalizedTask[]>;
 
 const adapters: Adapter[] = [cpalead, cpagrip, adscend, adgem, digitalTurbine];
@@ -413,10 +426,11 @@ export async function loadFeed(
   subid: string | null,
   env: EnvLookup = defaultEnv,
   country: string = DEFAULT_COUNTRY,
+  device: VisitorDevice = "mobile",
 ) {
   const visitorCountry = normalizeCountry(country);
   const settled = await Promise.allSettled(
-    adapters.map((fn) => fn(kind, subid, env, visitorCountry)),
+    adapters.map((fn) => fn(kind, subid, env, visitorCountry, device)),
   );
 
   const tasks: NormalizedTask[] = [];
