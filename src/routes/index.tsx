@@ -146,7 +146,7 @@ function DashboardPage() {
   const [askSignIn, setAskSignIn] = useState(false);
   const [authNote, setAuthNote] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "offer" | "survey">("all");
-  const [activeTask, setActiveTask] = useState<LiveTask | null>(null);
+  const [taskNote, setTaskNote] = useState<string | null>(null);
 
   useEffect(() => {
     ensureSession()
@@ -166,8 +166,17 @@ function DashboardPage() {
       setAskSignIn(true);
       return;
     }
+    if (!task.url) return;
     rememberStartedTask(task);
-    setActiveTask(task);
+    // Open the offer in its own browser tab. Inside a frame, advertiser pages can trap
+    // people on ads, app-store links fail, and tracking cookies get blocked, so the
+    // reward never confirms. A real tab keeps the back button and the tracking working.
+    const opened = window.open(task.url, "_blank");
+    if (opened) opened.opener = null;
+    else window.location.href = task.url;
+    setTaskNote(
+      "\"" + task.title + "\" opened in a new tab. Finish every step there, close any ads with your back button, then come back here. Your reward shows under \"Your tasks\" once it's confirmed.",
+    );
   };
 
   const offers = useFeed("offer", id);
@@ -225,6 +234,15 @@ function DashboardPage() {
 
       {authNote && (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{authNote}</div>
+      )}
+
+      {taskNote && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+          <span>{taskNote}</span>
+          <button type="button" onClick={() => setTaskNote(null)} className="shrink-0 text-xs font-bold text-sky-300 hover:text-white">
+            Got it
+          </button>
+        </div>
       )}
 
       <Link
@@ -321,47 +339,6 @@ function DashboardPage() {
             <button type="button" onClick={() => setAskSignIn(false)} className="mt-3 text-xs font-semibold text-slate-500 hover:text-slate-300">
               Not now
             </button>
-          </div>
-        </div>
-      )}
-
-      {activeTask?.url && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-2 sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Syde Hustle task"
-        >
-          <div className="flex h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Syde Hustle Task</p>
-                <h2 className="truncate text-sm font-bold text-white">{activeTask.title}</h2>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <a
-                  href={activeTask.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
-                >
-                  Open in new tab
-                </a>
-                <button type="button" onClick={() => setActiveTask(null)} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">
-                  Close
-                </button>
-              </div>
-            </div>
-            <iframe
-              title="Syde Hustle task"
-              src={activeTask.url}
-              className="min-h-0 flex-1 bg-white"
-              sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-same-origin"
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
-            <div className="border-t border-slate-800 px-4 py-2 text-center text-[10px] text-slate-500">
-              Page blank or stuck? Tap "Open in new tab". Seeing "You won!" pop-ups? That's the advertiser's page, not us: close them. Rewards are credited after the network confirms.
-            </div>
           </div>
         </div>
       )}
