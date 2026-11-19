@@ -17,10 +17,11 @@ export const Route = createFileRoute("/api/public/feed/$kind")({
           return typeof value === "string" && value.trim() ? value.trim() : null;
         };
 
-        const { loadFeed, countryFromRequest } = await import("@/lib/feeds/networks.server");
+        const { loadFeed, countryFromRequest, deviceFromRequest } = await import("@/lib/feeds/networks.server");
         const country = countryFromRequest(request);
+        const device = deviceFromRequest(request);
         try {
-          const { tasks, errors, removed } = await loadFeed(kind, subid, env, country);
+          const { tasks, errors, removed } = await loadFeed(kind, subid, env, country, device);
           if (errors.length) console.error("[feed]", kind, country, errors.join(" | "));
           return Response.json(
             { tasks },
@@ -28,8 +29,9 @@ export const Route = createFileRoute("/api/public/feed/$kind")({
               headers: {
                 "cache-control": "private, max-age=60",
                 // Offers differ per visitor country; never reuse one country's list for another.
-                vary: "CF-IPCountry",
+                vary: "CF-IPCountry, User-Agent",
                 "x-offer-country": country,
+                "x-offer-device": device,
                 // How many offers the clean-offer filter dropped (no titles, just a count).
                 "x-offers-filtered": String(removed.length),
               },
