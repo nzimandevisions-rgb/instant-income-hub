@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ensureSession } from "@/lib/account";
-import { AdsHonestyNote, FirstVisitGuide } from "@/components/EarnGuide";
+import { FirstVisitGuide } from "@/components/EarnGuide";
 
 export const Route = createFileRoute("/surveys")({ component: SurveysPage });
 
@@ -53,7 +53,7 @@ function SurveysPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Paid surveys</p>
           <h1 className="mt-1 text-xl font-black text-white">Share your opinion, earn points</h1>
           <p className="mt-1 text-xs text-slate-400">
-            Surveys pay more than most offers. If a survey says you don't qualify, try the next one: new ones arrive all day.
+            Surveys pay the fastest. If a survey says you don't qualify, try the next one—new surveys arrive all day.
           </p>
         </div>
         <Link to="/" className="shrink-0 rounded-xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200">
@@ -101,8 +101,6 @@ function SurveysPage() {
           {current.label} surveys are unavailable right now. Try the other tab or check back shortly.
         </div>
       )}
-
-      {state === "ready" && <AdsHonestyNote compact />}
 
       {state === "ready" && (
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-white">
