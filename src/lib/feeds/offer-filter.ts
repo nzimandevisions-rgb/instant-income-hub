@@ -1,17 +1,3 @@
-/**
- * Clean-offer filter.
- *
- * Syde Hustle never shows offers that pretend people "won" something, prize
- * draws, gambling, adult/dating, or "get rich" money bait. These are the
- * offers whose landing pages throw "Congratulations, you won!" pop-ups, and
- * they make honest new members think the whole site is a scam.
- *
- * The filter runs on the server, before the feed reaches the browser, and
- * applies to every network (CPAGrip, CPAlead, and any added later).
- * It is deliberately strict: losing a few borderline offers is better than
- * showing one deceptive one.
- */
-
 type FilterableOffer = {
   title: string;
   description: string;
@@ -31,7 +17,7 @@ const RULES: Rule[] = [
     reason: "'congratulations' / 'you were selected' bait",
     pattern: /\b(congrat(s|ulations)?|you('| ha)?ve been (selected|chosen)|you are selected|been selected|selected users?|claim (your|now|it|a|the)|unclaimed)\b/i,
   },
-  // Free money / free gift-card bait ("Get $1000 to spend at Walmart!").
+  // Free money / free gift-card bait.
   {
     reason: "gift-card / free-cash bait",
     pattern:
@@ -44,11 +30,26 @@ const RULES: Rule[] = [
     reason: "device giveaway",
     pattern: /\b(iphone|ipad|ps5|playstation ?5|xbox|nintendo switch|macbook|airpods|galaxy s\d+|samsung galaxy|smart ?tv)\b/i,
   },
-  // Gambling.
+  // Gambling (including baccarat).
   {
     reason: "gambling",
     pattern:
-      /\b(casino|casinos|slots?|slot machine|\bbet\b|bets|betting|bettor|sportsbook|wager|poker|bingo|roulette|blackjack|lottery|lotto|scratch ?cards?|gambl\w*|fantasy sports|daily fantasy|sports picks|picks|sweepcoins?|sweeps coins?)\b/i,
+      /\b(casino|casinos|slots?|slot machine|\bbet\b|bets|betting|bettor|sportsbook|wager|poker|bingo|roulette|blackjack|baccarat|lottery|lotto|scratch ?cards?|gambl\w*|fantasy sports|daily fantasy|sports picks|picks|sweepcoins?|sweeps coins?)\b/i,
+  },
+  // PIN submits & mobile carrier billing traps.
+  {
+    reason: "pin submit / mobile subscription",
+    pattern: /\b(pin ?submit|submit (your )?pin|enter (your )?(mobile|phone) (number|pin)|sms subscription|carrier billing)\b/i,
+  },
+  // Spammy co-reg / email-submit lead forms.
+  {
+    reason: "lead-gen / promo-email bait",
+    pattern: /\b(enter your information|get the best rewards|protect your personal data|banker or player)\b/i,
+  },
+  // Sketchy desktop/VPN utility downloads.
+  {
+    reason: "sketchy utility / free vpn",
+    pattern: /\b(free vpn|vpn for windows)\b/i,
   },
   // Adult and dating.
   {
