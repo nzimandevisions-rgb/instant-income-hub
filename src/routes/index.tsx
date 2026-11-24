@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useFeed, readStartedTasks, rememberStartedTask, type LiveTask, type StartedTask } from "@/lib/feed";
 import { ensureSession } from "@/lib/account";
-import { AdsHonestyNote, FirstVisitGuide } from "@/components/EarnGuide";
+import { FirstVisitGuide } from "@/components/EarnGuide";
 
 export const Route = createFileRoute("/")({ component: DashboardPage });
 
@@ -75,7 +75,9 @@ function TaskTracker() {
       }
     };
     refresh();
-    const timer = window.setInterval(refresh, 20000);
+    const timer = window.setInterval(() => {
+      if (!document.hidden) refresh();
+    }, 60000);
     window.addEventListener("syde-started-tasks", refresh);
     window.addEventListener("focus", refresh);
     return () => {
@@ -86,8 +88,6 @@ function TaskTracker() {
   }, []);
   if (started.length === 0) return null;
 
-  // Match each started task to a task reward that arrived after it was started.
-  // An offer ID inside the reward wins; otherwise the oldest unmatched reward is used.
   const rewards = earnings.filter((e) => e.type !== "referral_bonus");
   const used = new Set<string>();
   const oldestFirst = [...started].sort((a, b) => a.startedAt - b.startedAt);
@@ -156,7 +156,7 @@ function DashboardPage() {
       })
       .catch(() => undefined);
     const auth = new URLSearchParams(window.location.search).get("auth");
-    if (auth === "ok") setAuthNote("You're signed in. Your points are saved to your Google account. Pick a task to start.");
+    if (auth === "ok") setAuthNote("You're signed in. Your points are saved to your Google account. Pick a survey or task to start.");
     if (auth === "error") setAuthNote("Google sign-in didn't finish. Please try again.");
     if (auth) window.history.replaceState(null, "", "/");
   }, []);
@@ -168,14 +168,11 @@ function DashboardPage() {
     }
     if (!task.url) return;
     rememberStartedTask(task);
-    // Open the offer in its own browser tab. Inside a frame, advertiser pages can trap
-    // people on ads, app-store links fail, and tracking cookies get blocked, so the
-    // reward never confirms. A real tab keeps the back button and the tracking working.
     const opened = window.open(task.url, "_blank");
     if (opened) opened.opener = null;
     else window.location.href = task.url;
     setTaskNote(
-      "\"" + task.title + "\" opened in a new tab. Finish every step there, close any ads with your back button, then come back here. Your reward shows under \"Your tasks\" once it's confirmed.",
+      "\"" + task.title + "\" opened in a new tab. Finish every step there, then come back here. Your reward shows under \"Your tasks\" once it's confirmed.",
     );
   };
 
@@ -247,14 +244,14 @@ function DashboardPage() {
 
       <Link
         to="/surveys"
-        className="flex items-center justify-between gap-4 rounded-2xl border border-sky-500/30 bg-gradient-to-r from-sky-950/60 to-slate-900 p-5 transition hover:border-sky-400/60"
+        className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/60 to-slate-900 p-5 transition hover:border-emerald-400"
       >
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-sky-300">New · Paid surveys</p>
-          <h2 className="mt-1 font-black text-white">Earn more with surveys</h2>
-          <p className="mt-1 text-xs text-slate-400">5 to 15 minutes each, no downloads, no deposits.</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Fastest way to earn · Paid surveys</p>
+          <h2 className="mt-1 text-lg font-black text-white">Earn more with daily surveys</h2>
+          <p className="mt-1 text-xs text-slate-300">5 to 15 minutes each, no downloads, no deposits. Reach the $0.50 PayPal cash-out fastest here.</p>
         </div>
-        <span className="shrink-0 rounded-xl bg-sky-400 px-4 py-2.5 text-xs font-black text-slate-950">Open surveys →</span>
+        <span className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-slate-950">Open surveys →</span>
       </Link>
 
       <TaskTracker />
@@ -262,7 +259,7 @@ function DashboardPage() {
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Available tasks</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">App & task offers</p>
             <h2 className="mt-1 text-xl font-black text-white">Earn by completing tasks</h2>
           </div>
           <div className="flex rounded-xl border border-slate-800 bg-slate-900 p-1">
@@ -283,15 +280,26 @@ function DashboardPage() {
           </div>
         </div>
 
-        <AdsHonestyNote compact />
-
         {(offers.loading || surveys.loading) && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
             Loading available tasks…
           </div>
         )}
 
-        {!(offers.loading || surveys.loading) && tasks.length === 0 && (
+        {!(offers.loading || surveys.loading) && tab === "survey" && surveys.tasks.length === 0 && (
+          <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/70 p-6 text-center text-sm text-slate-300">
+            <p className="font-bold text-white">Live surveys are waiting on our Paid Surveys wall</p>
+            <p className="mt-1 text-slate-400">Open CPX Research surveys to see today's paid questionnaires.</p>
+            <Link
+              to="/surveys"
+              className="mt-4 inline-block rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-black text-slate-950 hover:bg-emerald-400"
+            >
+              Go to Paid Surveys →
+            </Link>
+          </div>
+        )}
+
+        {!(offers.loading || surveys.loading) && tab !== "survey" && tasks.length === 0 && (
           !signedIn ? (
             <div className="rounded-2xl border border-emerald-700/50 bg-slate-900/50 p-6 text-center text-sm text-slate-300">
               <p className="font-bold text-white">Sign in to see today's paid tasks</p>
@@ -306,7 +314,8 @@ function DashboardPage() {
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-6 text-center text-sm text-slate-400">
-              No eligible tasks are available right now. New tasks will appear automatically when an approved feed has eligible inventory.
+              No app offers are available for your device right now. Check our{" "}
+              <Link to="/surveys" className="font-bold text-emerald-300 underline">Paid Surveys</Link> for today's tasks!
             </div>
           )
         )}
