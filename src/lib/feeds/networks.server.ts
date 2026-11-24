@@ -40,16 +40,12 @@ function tagOffer(task: NormalizedTask): NormalizedTask {
     effort = 3;
     timeLabel = "about 10 min";
     flag = "Payment or deposit needed · read the terms";
-  } else if (/email|zip|submit|enter your information/.test(text)) {
-    effort = 1;
-    timeLabel = "about 1 min";
-    flag = "Expect promo emails";
   } else if (/install|download|app/.test(text)) {
     effort = 2;
     timeLabel = "about 3 min";
     flag = "Open the app after installing";
   } else if (/survey/.test(text)) {
-    effort = 2;
+    effort = 1;
     timeLabel = "about 10 min";
   }
   return { ...task, effort, timeLabel, flag };
@@ -216,7 +212,7 @@ async function adgem(kind: FeedKind, subid: string | null, env: EnvLookup): Prom
       Accept: "application/json",
     },
     body: JSON.stringify({
-      query: "query GetOffers(\$playerId: String!) { offers(player_id: \$playerId) { id name total_payout_usd creatives { name description short_description instructions disclaimer } links { click_url } goals { name description payout_usd } is_featured_campaign } }",
+      query: "query GetOffers($playerId: String!) { offers(player_id: $playerId) { id name total_payout_usd creatives { name description short_description instructions disclaimer } links { click_url } goals { name description payout_usd } is_featured_campaign } }",
       variables: { playerId: subid },
     }),
   });
@@ -261,7 +257,6 @@ async function digitalTurbine(kind: FeedKind, subid: string | null, env: EnvLook
   }));
 }
 
-
 /* ---------------------------------- CPAlead --------------------------------- */
 
 async function cpalead(
@@ -273,13 +268,10 @@ async function cpalead(
 ): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
-  // The publisher ID is public configuration, not a secret. Keep it overrideable
-  // so the same build can be moved to a different approved publisher account.
   const publisherId = env("CPALEAD_PUBLISHER_ID") ?? env("CPALEAD_PUB_ID") ?? "3359608";
   const url = new URL("https://www.cpalead.com/api/offers");
   url.searchParams.set("id", publisherId);
   url.searchParams.set("country", country);
-  // "user" made CPAlead read OUR server's device (desktop), not the visitor's.
   url.searchParams.set("device", device);
   url.searchParams.set("limit", "100");
   url.searchParams.set("subid", subid);
@@ -332,16 +324,9 @@ async function cpagrip(
 ): Promise<NormalizedTask[]> {
   if (kind !== "offer" || !subid) return [];
 
-  // CPAGrip provides publisher-specific JSON/XML/CSV offer feeds from the
-  // Offer Tools area. We intentionally keep the feed URL in an environment
-  // variable so it is never exposed to the browser.
   const feedUrl = env("CPAGRIP_OFFER_FEED_URL");
 
-  // If the JSON feed URL has not been configured yet, keep the hosted wall
-  // available as a safe fallback rather than pretending inventory exists.
   if (!feedUrl) {
-    // The hosted CPAGrip wall shows its own unfiltered list (including prize
-    // draws), so it is off unless the owner turns it on deliberately.
     if (env("CPAGRIP_ALLOW_HOSTED_WALL") !== "1") return [];
     const publisherId = env("CPAGRIP_AFFILIATE_ID") ?? "2554086";
     const wallUrl = new URL("https://www.cpagrip.com/showoffer.php");
@@ -366,14 +351,9 @@ async function cpagrip(
     .replaceAll("{uid}", encodeURIComponent(subid));
 
   const url = new URL(resolvedUrl);
-  // These are harmless when the feed already embeds a tracking placeholder,
-  // and give CPAGrip a stable user identifier when the feed accepts query args.
   for (const key of ["subid", "tracking_id", "uid"]) {
     if (!url.searchParams.has(key)) url.searchParams.set(key, subid);
   }
-  // The configured feed URL carries a fixed country (CPAGrip's "country"
-  // parameter). Replace it with the visitor's country so each person sees
-  // offers they are actually eligible for.
   for (const key of [...url.searchParams.keys()]) {
     if (key.toLowerCase() === "country") url.searchParams.delete(key);
   }
@@ -440,13 +420,12 @@ export async function loadFeed(
     else errors.push(`${adapters[i]?.name ?? "network"}: ${String(r.reason)}`);
   });
 
-  // Drop prize draws, "you won" bait, gambling, adult/dating and crypto
-  // schemes before anything reaches the browser (see offer-filter.ts).
+  // Drop prize draws, "you won" bait, PIN submits, promo-email spam, gambling, adult/dating and crypto.
   const { kept, removed } = filterCleanOffers(tasks);
 
-  // Quick, no-money tasks first so new users get an early win; then by reward.
+  // No-deposit tasks first, sorted by highest reward.
   const ranked = dedupe(kept.map(tagOffer)).sort(
-    (a, b) => (a.effort ?? 2) - (b.effort ?? 2) || b.points - a.points,
+    (a, b) => ((a.effort ?? 2) >= 3 ? 1 : 0) - ((b.effort ?? 2) >= 3 ? 1 : 0) || b.points - a.points,
   );
   return { tasks: ranked, errors, removed };
 }
